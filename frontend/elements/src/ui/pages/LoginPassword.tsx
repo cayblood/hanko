@@ -75,7 +75,7 @@ const LoginPassword = ({ userID, initialError }: Props) => {
 
   const onForgotPasswordClick = () => {
     setIsPasscodeLoading(true);
-    renderPasscode(userID, true, false).catch((e) => renderError(e));
+    renderPasscode(userID, true).catch((e) => renderError(e));
   };
 
   // Automatically clear the too many requests error message

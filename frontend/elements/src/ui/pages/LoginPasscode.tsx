@@ -24,14 +24,16 @@ import Paragraph from "../components/Paragraph";
 
 import LoadingIndicatorLink from "../components/link/withLoadingIndicator";
 import LinkToEmailLogin from "../components/link/toEmailLogin";
+import LinkToLoginReAuth from "../components/link/toLoginReAuth";
 import LinkToPasswordLogin from "../components/link/toPasswordLogin";
+
+import { AppContext } from "../contexts/AppProvider";
 
 type Props = {
   userID: string;
   recoverPassword: boolean;
   numberOfDigits?: number;
   initialError?: HankoError;
-  hideBackLink?: boolean;
 };
 
 const LoginPasscode = ({
@@ -39,8 +41,8 @@ const LoginPasscode = ({
   recoverPassword,
   numberOfDigits = 6,
   initialError,
-  hideBackLink,
 }: Props) => {
+  const { mode } = useContext(AppContext);
   const { t } = useContext(TranslateContext);
   const { eventuallyRenderEnrollment, emitSuccessEvent } =
     useContext(RenderContext);
@@ -159,14 +161,16 @@ const LoginPasscode = ({
       <Footer>
         {recoverPassword ? (
           <LinkToPasswordLogin
-            disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
             userID={userID}
-            hidden={hideBackLink}
+            disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
+          />
+        ) : mode === "reAuth" ? (
+          <LinkToLoginReAuth
+            disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
           />
         ) : (
           <LinkToEmailLogin
             disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
-            hidden={hideBackLink}
           />
         )}
         <LoadingIndicatorLink

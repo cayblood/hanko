@@ -20,11 +20,12 @@ interface Props {
 
 const Error = ({ initialError }: Props) => {
   const { t } = useContext(TranslateContext);
-  const { config, configInitialize } = useContext(AppContext);
+  const { mode, config, configInitialize } = useContext(AppContext);
   const { userInitialize } = useContext(UserContext);
   const {
     eventuallyRenderEnrollment,
     renderLoginEmail,
+    renderLoginReAuth,
     emitSuccessEvent,
     renderError,
   } = useContext(RenderContext);
@@ -48,29 +49,44 @@ const Error = ({ initialError }: Props) => {
       return;
     }
 
-    userInitialize()
-      .then((u) => eventuallyRenderEnrollment(u, false))
-      .then((rendered) => {
-        if (!rendered) {
-          setIsSuccess(true);
-          emitSuccessEvent();
-        }
+    if (mode === "auth") {
+      userInitialize()
+        .then((u) => eventuallyRenderEnrollment(u, false))
+        .then((rendered) => {
+          if (!rendered) {
+            setIsSuccess(true);
+            emitSuccessEvent();
+          }
 
-        return;
-      })
-      .catch((e) => {
-        if (e instanceof UnauthorizedError) {
-          renderLoginEmail();
-        } else {
+          return;
+        })
+        .catch((e) => {
+          if (e instanceof UnauthorizedError) {
+            renderLoginEmail();
+          } else {
+            setIsLoading(false);
+            setError(e);
+          }
+        });
+    } else if (mode === "reAuth") {
+      userInitialize()
+        .then(() => {
+          renderLoginReAuth();
+          return;
+        })
+        .catch((e) => {
           setIsLoading(false);
           setError(e);
-        }
-      });
+        });
+    }
   }, [
     config,
     emitSuccessEvent,
     eventuallyRenderEnrollment,
+    mode,
+    renderError,
     renderLoginEmail,
+    renderLoginReAuth,
     userInitialize,
   ]);
 

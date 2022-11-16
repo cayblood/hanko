@@ -45,7 +45,7 @@ const RegisterConfirm = () => {
       })
       .then((userInfo) => {
         if (userInfo) {
-          return renderPasscode(userInfo.id, config.password.enabled, true);
+          return renderPasscode(userInfo.id, config.password.enabled);
         }
         return;
       })
@@ -61,7 +61,7 @@ const RegisterConfirm = () => {
       return;
     }
 
-    renderPasscode(user.id, config.password.enabled, true).catch((e) => {
+    renderPasscode(user.id, config.password.enabled).catch((e) => {
       setIsLoading(false);
       setError(e);
     });

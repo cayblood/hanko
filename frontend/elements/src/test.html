@@ -9,7 +9,7 @@
             background-color: hsl(188, 99%, 38%);
         }
 
-        hanko-auth {
+        hanko-auth, hanko-re-auth {
             --color-h: 188;
             --color-s: 99%;
             --color-l: 38%;
@@ -61,12 +61,12 @@
     </style>
 </head>
 <body>
-<hanko-auth lang="en" api="http://localhost:8000"></hanko-auth>
+<hanko-auth lang="en" api="http://localhost:8000"></hanko-auth><hr>
+<hanko-re-auth lang="en" api="http://localhost:8000"></hanko-re-auth>
 <script>
-    HankoAuth.register({ shadow: true });
-
+    HankoAuth.register({ shadow: false });
     document.addEventListener("hankoAuthSuccess", (event) => {
-        document.body.innerHTML = 'secured content...'
+        // document.body.innerHTML = 'secured content...'
     })
 </script>
 </body>

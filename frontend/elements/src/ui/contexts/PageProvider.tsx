@@ -15,10 +15,11 @@ import { PasswordContext } from "./PasswordProvider";
 import { PasscodeContext } from "./PasscodeProvider";
 import { TranslateContext } from "@denysvuika/preact-translate";
 
-import Initialize from "../pages/Initialize";
+// import Initialize from "../pages/Initialize";
 import LoginEmail from "../pages/LoginEmail";
 import LoginPasscode from "../pages/LoginPasscode";
 import LoginPassword from "../pages/LoginPassword";
+import LoginReAuth from "../pages/LoginReAuth";
 import LoginFinished from "../pages/LoginFinished";
 import RegisterConfirm from "../pages/RegisterConfirm";
 import RegisterPassword from "../pages/RegisterPassword";
@@ -28,20 +29,18 @@ import Container from "../components/Container";
 
 interface Props {
   lang?: string;
+  entry: h.JSX.Element;
 }
 
 interface Context {
   emitSuccessEvent: () => void;
+  renderLoginReAuth: () => void;
   eventuallyRenderEnrollment: (
     user: User,
     recoverPassword: boolean
   ) => Promise<boolean>;
   renderPassword: (userID: string) => Promise<void>;
-  renderPasscode: (
-    userID: string,
-    recoverPassword: boolean,
-    hideBackButton: boolean
-  ) => Promise<void>;
+  renderPasscode: (userID: string, recoverPassword: boolean) => Promise<void>;
   renderError: (e: HankoError) => void;
   renderLoginEmail: () => void;
   renderLoginFinished: () => void;
@@ -51,12 +50,12 @@ interface Context {
 
 export const RenderContext = createContext<Context>(null);
 
-const PageProvider = ({ lang }: Props) => {
+const PageProvider = ({ lang, entry }: Props) => {
   const { hanko } = useContext(AppContext);
   const { passwordInitialize } = useContext(PasswordContext);
   const { passcodeInitialize } = useContext(PasscodeContext);
   const { setLang } = useContext(TranslateContext);
-  const [page, setPage] = useState<h.JSX.Element>(<Initialize />);
+  const [page, setPage] = useState<h.JSX.Element>(entry);
   const [loginFinished, setLoginFinished] = useState<boolean>(false);
 
   const emitSuccessEvent = useCallback(() => {
@@ -65,19 +64,18 @@ const PageProvider = ({ lang }: Props) => {
 
   const pages = useMemo(
     () => ({
+      loginReAuth: () => setPage(<LoginReAuth />),
       loginEmail: () => setPage(<LoginEmail />),
       loginPasscode: (
         userID: string,
         recoverPassword: boolean,
-        initialError?: HankoError,
-        hideBackLink?: boolean
+        initialError?: HankoError
       ) =>
         setPage(
           <LoginPasscode
             userID={userID}
             recoverPassword={recoverPassword}
             initialError={initialError}
-            hideBackLink={hideBackLink}
           />
         ),
       loginPassword: (userID: string, initialError: HankoError) =>
@@ -96,6 +94,10 @@ const PageProvider = ({ lang }: Props) => {
     }),
     []
   );
+
+  const renderLoginReAuth = useCallback(() => {
+    pages.loginReAuth();
+  }, [pages]);
 
   const renderLoginEmail = useCallback(() => {
     pages.loginEmail();
@@ -117,11 +119,11 @@ const PageProvider = ({ lang }: Props) => {
   );
 
   const renderPasscode = useCallback(
-    (userID: string, recoverPassword: boolean, hideBackButton: boolean) => {
+    (userID: string, recoverPassword: boolean) => {
       return new Promise<void>((resolve, reject) => {
         passcodeInitialize(userID)
           .then((e) => {
-            pages.loginPasscode(userID, recoverPassword, e, hideBackButton);
+            pages.loginPasscode(userID, recoverPassword, e);
 
             return resolve();
           })
@@ -179,6 +181,7 @@ const PageProvider = ({ lang }: Props) => {
         emitSuccessEvent,
         renderLoginEmail,
         renderLoginFinished,
+        renderLoginReAuth,
         renderPassword,
         renderPasscode,
         eventuallyRenderEnrollment,

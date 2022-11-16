@@ -67,7 +67,7 @@ const LoginEmail = () => {
       .getInfo(email)
       .then((userInfo) => {
         if (!userInfo.verified) {
-          return renderPasscode(userInfo.id, config.password.enabled, true);
+          return renderPasscode(userInfo.id, config.password.enabled);
         }
 
         if (
@@ -108,7 +108,7 @@ const LoginEmail = () => {
       .getInfo(email)
       .then((info) => {
         if (!info.verified) {
-          return renderPasscode(info.id, config.password.enabled, true);
+          return renderPasscode(info.id, config.password.enabled);
         }
 
         return renderAlternateLoginMethod(info.id);
@@ -166,7 +166,7 @@ const LoginEmail = () => {
         });
       }
 
-      return renderPasscode(userID, false, false).catch((e) => {
+      return renderPasscode(userID, false).catch((e) => {
         throw e;
       });
     },

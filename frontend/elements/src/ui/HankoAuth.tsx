@@ -1,23 +1,24 @@
 import * as preact from "preact";
 import registerCustomElement from "preact-custom-element";
-import { Fragment } from "preact";
 
-import { TranslateProvider } from "@denysvuika/preact-translate";
+import InitializeLogin from "./pages/InitializeLogin";
+import InitializeReAuth from "./pages/InitializeReAuth";
 
-import PageProvider from "./contexts/PageProvider";
-import AppProvider from "./contexts/AppProvider";
-import UserProvider from "./contexts/UserProvider";
-import PasscodeProvider from "./contexts/PasscodeProvider";
-import PasswordProvider from "./contexts/PasswordProvider";
+import { AppEntry } from "./components/AppEntry";
 
-import { translations } from "./Translations";
+export type Mode = "auth" | "reAuth" | "profile";
 
-interface Props {
+export interface Props {
+  mode: Mode;
   api: string;
   lang?: string;
 }
 
 declare interface HankoAuthElement
+  extends preact.JSX.HTMLAttributes<HTMLElement>,
+    Props {}
+
+declare interface HankoReAuthElement
   extends preact.JSX.HTMLAttributes<HTMLElement>,
     Props {}
 
@@ -27,25 +28,27 @@ declare global {
     // eslint-disable-next-line no-unused-vars
     interface IntrinsicElements {
       "hanko-auth": HankoAuthElement;
+      "hanko--re-auth": HankoReAuthElement;
     }
   }
 }
 
-export const HankoAuth = ({ api = "", lang = "en" }: Props) => {
+const styles = window._hankoStyle;
+
+export const HankoAuth = ({ api, lang }: Props) => {
   return (
-    <Fragment>
-      <AppProvider api={api}>
-        <TranslateProvider translations={translations} fallbackLang={"en"}>
-          <UserProvider>
-            <PasswordProvider>
-              <PasscodeProvider>
-                <PageProvider lang={lang} />
-              </PasscodeProvider>
-            </PasswordProvider>
-          </UserProvider>
-        </TranslateProvider>
-      </AppProvider>
-    </Fragment>
+    <AppEntry mode={"auth"} entry={<InitializeLogin />} api={api} lang={lang} />
+  );
+};
+
+export const HankoReAuth = ({ api, lang }: Props) => {
+  return (
+    <AppEntry
+      mode={"reAuth"}
+      entry={<InitializeReAuth />}
+      api={api}
+      lang={lang}
+    />
   );
 };
 
@@ -57,37 +60,50 @@ export interface RegisterOptions {
 export const register = ({
   shadow = true,
   injectStyles = true,
-}: RegisterOptions): Promise<void> => {
-  const tagName = "hanko-auth";
+}: RegisterOptions) =>
+  Promise.all([
+    _register({
+      tagName: "hanko-auth",
+      entry: HankoAuth,
+      shadow,
+      injectStyles,
+    }),
+    _register({
+      tagName: "hanko-re-auth",
+      entry: HankoReAuth,
+      shadow,
+      injectStyles,
+    }),
+  ]);
 
-  return new Promise<void>((resolve, reject) => {
-    if (!customElements.get(tagName)) {
-      registerCustomElement(HankoAuth, tagName, ["api", "lang"], {
-        shadow,
-      });
-    }
+interface InternalRegisterOptions extends RegisterOptions {
+  tagName: string;
+  entry: preact.FunctionalComponent<Props>;
+}
 
-    if (injectStyles) {
-      customElements
-        .whenDefined(tagName)
-        .then((_) => {
-          const elements = document.getElementsByTagName(tagName);
+const _register = async ({
+  tagName,
+  entry,
+  shadow,
+  injectStyles,
+}: InternalRegisterOptions) => {
+  if (!customElements.get(tagName)) {
+    registerCustomElement(entry, tagName, ["api", "lang"], {
+      shadow,
+    });
+  }
 
-          Array.from(elements).forEach((element) => {
-            if (shadow) {
-              element.shadowRoot.appendChild(window._hankoStyle);
-            } else {
-              element.appendChild(window._hankoStyle);
-            }
-          });
+  if (injectStyles) {
+    await customElements.whenDefined(tagName);
+    const elements = document.getElementsByTagName(tagName);
 
-          return resolve();
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    } else {
-      return resolve();
-    }
-  });
+    Array.from(elements).forEach((element) => {
+      if (shadow) {
+        const clonedStyles = styles.cloneNode(true);
+        element.shadowRoot.appendChild(clonedStyles);
+      } else {
+        element.appendChild(styles);
+      }
+    });
+  }
 };

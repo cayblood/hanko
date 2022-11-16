@@ -3,10 +3,12 @@ import { ComponentChildren, createContext } from "preact";
 import { useCallback, useMemo, useState } from "preact/compat";
 
 import { Hanko, Config } from "@teamhanko/hanko-frontend-sdk";
+import { Mode } from "../HankoAuth";
 
 interface Props {
   api?: string;
   lang?: string;
+  mode: Mode;
   children: ComponentChildren;
 }
 
@@ -14,11 +16,12 @@ interface Context {
   config: Config;
   configInitialize: () => Promise<Config>;
   hanko: Hanko;
+  mode: Mode;
 }
 
 export const AppContext = createContext<Context>(null);
 
-const AppProvider = ({ api, children }: Props) => {
+const AppProvider = ({ api, children, mode }: Props) => {
   const [config, setConfig] = useState<Config>(null);
 
   const hanko = useMemo(() => {
@@ -46,7 +49,7 @@ const AppProvider = ({ api, children }: Props) => {
   }, [hanko]);
 
   return (
-    <AppContext.Provider value={{ config, configInitialize, hanko }}>
+    <AppContext.Provider value={{ config, mode, configInitialize, hanko }}>
       {children}
     </AppContext.Provider>
   );
