@@ -42,9 +42,12 @@ describe("webauthnClient.login()", () => {
       .mockResolvedValueOnce(initResponse)
       .mockResolvedValueOnce(finalResponse);
 
-    jest.spyOn(webauthnClient.state, "read");
-    jest.spyOn(webauthnClient.state, "addCredential");
-    jest.spyOn(webauthnClient.state, "write");
+    jest.spyOn(webauthnClient.webauthnState, "read");
+    jest.spyOn(webauthnClient.webauthnState, "addCredential");
+    jest.spyOn(webauthnClient.webauthnState, "write");
+    jest.spyOn(webauthnClient.passcodeState, "read");
+    jest.spyOn(webauthnClient.passcodeState, "reset");
+    jest.spyOn(webauthnClient.passcodeState, "write");
 
     await webauthnClient.login(userID, true);
 
@@ -53,12 +56,15 @@ describe("webauthnClient.login()", () => {
       mediation: "conditional",
     });
     expect(webauthnClient._createAbortSignal).toHaveBeenCalledTimes(1);
-    expect(webauthnClient.state.read).toHaveBeenCalledTimes(1);
-    expect(webauthnClient.state.addCredential).toHaveBeenCalledWith(
+    expect(webauthnClient.webauthnState.read).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.webauthnState.addCredential).toHaveBeenCalledWith(
       userID,
       credentialID
     );
-    expect(webauthnClient.state.write).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.webauthnState.write).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.passcodeState.read).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.passcodeState.reset).toHaveBeenCalledWith(userID);
+    expect(webauthnClient.passcodeState.write).toHaveBeenCalledTimes(1);
     expect(webauthnClient.client.post).toHaveBeenNthCalledWith(
       1,
       "/webauthn/login/initialize",
@@ -150,9 +156,9 @@ describe("webauthnClient.register()", () => {
       .mockResolvedValueOnce(initResponse)
       .mockResolvedValueOnce(finalResponse);
 
-    jest.spyOn(webauthnClient.state, "read");
-    jest.spyOn(webauthnClient.state, "addCredential");
-    jest.spyOn(webauthnClient.state, "write");
+    jest.spyOn(webauthnClient.webauthnState, "read");
+    jest.spyOn(webauthnClient.webauthnState, "addCredential");
+    jest.spyOn(webauthnClient.webauthnState, "write");
 
     await webauthnClient.register();
 
@@ -160,12 +166,12 @@ describe("webauthnClient.register()", () => {
       ...fakeCreationOptions,
     });
     expect(webauthnClient._createAbortSignal).toHaveBeenCalledTimes(1);
-    expect(webauthnClient.state.read).toHaveBeenCalledTimes(1);
-    expect(webauthnClient.state.addCredential).toHaveBeenCalledWith(
+    expect(webauthnClient.webauthnState.read).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.webauthnState.addCredential).toHaveBeenCalledWith(
       userID,
       credentialID
     );
-    expect(webauthnClient.state.write).toHaveBeenCalledTimes(1);
+    expect(webauthnClient.webauthnState.write).toHaveBeenCalledTimes(1);
     expect(webauthnClient.client.post).toHaveBeenNthCalledWith(
       1,
       "/webauthn/registration/initialize"
@@ -251,7 +257,6 @@ describe("webauthnClient.shouldRegister()", () => {
 
       const user: User = {
         id: userID,
-        email: userID,
         webauthn_credentials: [],
       };
 
@@ -261,11 +266,11 @@ describe("webauthnClient.shouldRegister()", () => {
 
       if (credentialMatched) {
         jest
-          .spyOn(webauthnClient.state, "matchCredentials")
+          .spyOn(webauthnClient.webauthnState, "matchCredentials")
           .mockReturnValueOnce([{ id: credentialID }]);
       } else {
         jest
-          .spyOn(webauthnClient.state, "matchCredentials")
+          .spyOn(webauthnClient.webauthnState, "matchCredentials")
           .mockReturnValueOnce([]);
       }
 

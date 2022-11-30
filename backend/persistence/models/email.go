@@ -15,7 +15,7 @@ type Email struct {
 	Address      string        `db:"address" json:"address"`
 	Verified     bool          `db:"verified" json:"verified"`
 	PrimaryEmail *PrimaryEmail `has_one:"primary_emails" json:"primary_emails,omitempty"`
-	User         *User         `belongs_to:"tree" json:"user,omitempty"`
+	User         *User         `belongs_to:"user" json:"user,omitempty"`
 	CreatedAt    time.Time     `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time     `db:"updated_at" json:"updated_at"`
 }
@@ -35,7 +35,7 @@ func NewEmail(userId uuid.UUID, address string) *Email {
 }
 
 func (email *Email) IsPrimary() bool {
-	if email.PrimaryEmail != nil {
+	if email.PrimaryEmail != nil && !email.PrimaryEmail.ID.IsNil() {
 		return true
 	}
 	return false

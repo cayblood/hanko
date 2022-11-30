@@ -18,8 +18,16 @@ interface Context {
   passcodeIsActive: boolean;
   passcodeTTL: number;
   passcodeResendAfter: number;
-  passcodeInitialize: (userID: string) => Promise<HankoError>;
-  passcodeResend: (userID: string) => Promise<void>;
+  passcodeInitialize: (
+    userID: string,
+    emailID: string,
+    isVerification: boolean
+  ) => Promise<HankoError>;
+  passcodeResend: (
+    userID: string,
+    emailID: string,
+    isVerification: boolean
+  ) => Promise<void>;
   passcodeFinalize: (userID: string, passcode: string) => Promise<void>;
 }
 
@@ -33,10 +41,14 @@ const PasscodeProvider: FunctionalComponent = ({ children }: Props) => {
   const [passcodeIsActive, setPasscodeIsActive] = useState<boolean>(false);
 
   const passcodeResend = useCallback(
-    (userID: string): Promise<void> => {
+    (
+      userID: string,
+      emailID: string,
+      isVerification: boolean
+    ): Promise<void> => {
       return new Promise<void>((resolve, reject) => {
         hanko.passcode
-          .initialize(userID)
+          .initialize(userID, emailID, isVerification)
           .then((passcode) => {
             setPasscodeTTL(passcode.ttl);
             setPasscodeIsActive(true);
@@ -56,20 +68,21 @@ const PasscodeProvider: FunctionalComponent = ({ children }: Props) => {
   );
 
   const passcodeInitialize = useCallback(
-    (userID: string) => {
+    (userID: string, emailID: string, isVerification: boolean) => {
       return new Promise<HankoError>((resolve, reject) => {
         const ttl = hanko.passcode.getTTL(userID);
         const resendAfter = hanko.passcode.getResendAfter(userID);
-
+        const differentEmailAddress =
+          emailID !== hanko.passcode.state.read().getEmailID(userID);
         setPasscodeTTL(ttl);
         setPasscodeResendAfter(resendAfter);
 
-        if (ttl > 0) {
+        if (ttl > 0 && !differentEmailAddress) {
           setPasscodeIsActive(true);
 
           return resolve(null);
         } else if (resendAfter <= 0) {
-          passcodeResend(userID)
+          passcodeResend(userID, emailID, isVerification)
             .then(() => {
               setPasscodeIsActive(true);
 

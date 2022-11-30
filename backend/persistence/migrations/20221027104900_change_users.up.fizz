@@ -1,2 +1,17 @@
 drop_column("users", "email")
 drop_column("users", "verified")
+
+add_column("users", "primary_email_id", "uuid", { "null": true })
+add_foreign_key("users", "primary_email_id", {"primary_emails": ["id"]}, {
+    "on_delete": "restrict",
+    "on_update": "cascade",
+})
+
+sql("
+UPDATE users u
+SET primary_email_id = (
+SELECT pe.id
+  FROM primary_emails pe
+ WHERE pe.user_id = u.id
+ LIMIT 1
+)")

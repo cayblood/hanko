@@ -12,6 +12,7 @@ import {
 import { Attestation, User, WebauthnFinalized } from "../Dto";
 import { WebauthnSupport } from "../WebauthnSupport";
 import { Client } from "./Client";
+import { PasscodeState } from "../state/PasscodeState";
 
 /**
  * A class that handles WebAuthn authentication and registration.
@@ -22,7 +23,8 @@ import { Client } from "./Client";
  * @extends {Client}
  */
 class WebauthnClient extends Client {
-  state: WebauthnState;
+  webauthnState: WebauthnState;
+  passcodeState: PasscodeState;
   controller: AbortController;
 
   _getCredential = getWebauthnCredential;
@@ -35,7 +37,12 @@ class WebauthnClient extends Client {
      *  @public
      *  @type {WebauthnState}
      */
-    this.state = new WebauthnState();
+    this.webauthnState = new WebauthnState();
+    /**
+     *  @public
+     *  @type {PasscodeState}
+     */
+    this.passcodeState = new PasscodeState();
   }
 
   /**
@@ -94,10 +101,12 @@ class WebauthnClient extends Client {
 
     const finalizeResponse: WebauthnFinalized = assertionResponse.json();
 
-    this.state
+    this.webauthnState
       .read()
       .addCredential(finalizeResponse.user_id, finalizeResponse.credential_id)
       .write();
+
+    this.passcodeState.read().reset(userID).write();
 
     return;
   }
@@ -155,7 +164,7 @@ class WebauthnClient extends Client {
     }
 
     const finalizeResponse: WebauthnFinalized = attestationResponse.json();
-    this.state
+    this.webauthnState
       .read()
       .addCredential(finalizeResponse.user_id, finalizeResponse.credential_id)
       .write();
@@ -178,7 +187,7 @@ class WebauthnClient extends Client {
       return supported;
     }
 
-    const matches = this.state
+    const matches = this.webauthnState
       .read()
       .matchCredentials(user.id, user.webauthn_credentials);
 

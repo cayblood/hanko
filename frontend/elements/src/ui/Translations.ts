@@ -6,17 +6,18 @@ export const translations = {
       loginFinished: "Login successful",
       loginPasscode: "Enter passcode",
       loginPassword: "Enter password",
-      loginReAuth: "Re-Authentication",
       registerAuthenticator: "Save a passkey",
       registerConfirm: "Create account?",
       registerPassword: "Set new password",
+      reAuth: "Re-Authentication required",
+      profile: "Profile",
     },
     texts: {
-      enterPasscode: 'Enter the passcode that was sent to "{email}".',
+      enterPasscode: 'Enter the passcode that was sent to "{emailAddress}".',
       setupPasskey:
         "Sign in to your account easily and securely with a passkey. Note: Your biometric data is only stored on your devices and will never be shared with anyone.",
       createAccount:
-        'No account exists for "{email}". Do you want to create a new account?',
+        'No account exists for "{emailAddress}". Do you want to create a new account?',
       passwordFormatHint: "Must be at least 10 characters long.",
     },
     labels: {
@@ -50,6 +51,8 @@ export const translations = {
       unauthorized: "Your session has expired. Please log in again.",
       invalidWebauthnCredential: "Invalid WebAuthn credentials.",
       passcodeExpired: "The passcode has expired. Please request a new one.",
+      emailAddressAlreadyExistsError: "The email address already exists.",
+      maxNumOfEmailAddressesReached: "No further email addresses can be added.",
     },
   },
   de: {
@@ -59,18 +62,19 @@ export const translations = {
       loginFinished: "Login erfolgreich",
       loginPasscode: "Passcode eingeben",
       loginPassword: "Passwort eingeben",
-      loginReAuth: "Erneute Authentifizierung",
       registerAuthenticator: "Passkey einrichten",
       registerConfirm: "Konto erstellen?",
       registerPassword: "Neues Passwort eingeben",
+      reAuth: "Erneute authentifizierunf erforderlich",
+      profile: "Profil",
     },
     texts: {
       enterPasscode:
-        'Geben Sie den Passcode ein, der an die E-Mail-Adresse "{email}" gesendet wurde.',
+        'Geben Sie den Passcode ein, der an die E-Mail-Adresse "{emailAddress}" gesendet wurde.',
       setupPasskey:
         "Ihr Gerät unterstützt die sichere Anmeldung mit Passkeys. Hinweis: Ihre biometrischen Daten verbleiben sicher auf Ihrem Gerät und werden niemals an unseren Server gesendet.",
       createAccount:
-        'Es existiert kein Konto für "{email}". Möchten Sie ein neues Konto erstellen?',
+        'Es existiert kein Konto für "{emailAddress}". Möchten Sie ein neues Konto erstellen?',
       passwordFormatHint: "mindestens 10 Zeichen",
     },
     labels: {
@@ -106,6 +110,9 @@ export const translations = {
       invalidWebauthnCredential: "Ungültiger Berechtigungsnachweis",
       passcodeExpired:
         "Der Passcode ist abgelaufen. Bitte fordern Sie einen neuen Code an.",
+      emailAddressAlreadyExistsError: "Die E-Mail-Adresse existiert bereits.",
+      maxNumOfEmailAddressesReached:
+        "Es können keine weiteren E-Mail-Adressen hinzugefügt werden.",
     },
   },
 };

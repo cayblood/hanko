@@ -2,13 +2,15 @@ import * as preact from "preact";
 import { FunctionalComponent, RenderableProps } from "preact";
 import { useContext } from "preact/compat";
 
+import { UserInfo } from "@teamhanko/hanko-frontend-sdk";
+
 import { TranslateContext } from "@denysvuika/preact-translate";
 import { RenderContext } from "../../contexts/PageProvider";
 
 import Link, { Props as LinkProps } from "../Link";
 
 interface Props {
-  userID: string;
+  userInfo: UserInfo;
 }
 
 const linkToPasswordLogin = <P extends Props & LinkProps>(
@@ -19,7 +21,7 @@ const linkToPasswordLogin = <P extends Props & LinkProps>(
     const { renderPassword, renderError } = useContext(RenderContext);
 
     const onClick = () => {
-      renderPassword(props.userID).catch((e) => renderError(e));
+      renderPassword(props.userInfo).catch((e) => renderError(e));
     };
 
     return (

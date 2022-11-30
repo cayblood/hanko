@@ -120,8 +120,8 @@ func NewPublicRouter(cfg *config.Config, persister persistence.Persister) *echo.
 
 	email := e.Group("/emails")
 	email.Use(hankoMiddleware.Session(sessionManager))
-	email.GET("/", emailHandler.List)
-	email.POST("/", emailHandler.Create, privilegedSession.Middleware)
+	email.GET("", emailHandler.List)
+	email.POST("", emailHandler.Create, privilegedSession.Middleware)
 	email.DELETE("/:id", emailHandler.Delete, privilegedSession.Middleware)
 	email.PATCH("/:id", emailHandler.Update, privilegedSession.Middleware)
 

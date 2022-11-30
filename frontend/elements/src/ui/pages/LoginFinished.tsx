@@ -1,5 +1,5 @@
 import * as preact from "preact";
-import { useContext, useState } from "preact/compat";
+import {useContext, useEffect, useState} from "preact/compat";
 
 import { TranslateContext } from "@denysvuika/preact-translate";
 import { RenderContext } from "../contexts/PageProvider";
@@ -11,7 +11,7 @@ import Form from "../components/Form";
 
 const LoginFinished = () => {
   const { t } = useContext(TranslateContext);
-  const { emitSuccessEvent } = useContext(RenderContext);
+  const { emitSuccessEvent, renderHeadline } = useContext(RenderContext);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   const onContinue = (event: Event) => {
@@ -20,9 +20,13 @@ const LoginFinished = () => {
     emitSuccessEvent();
   };
 
+  useEffect(
+    () => renderHeadline(t("headlines.loginFinished")),
+    [renderHeadline, t]
+  );
+
   return (
     <Content>
-      <Headline>{t("headlines.loginFinished")}</Headline>
       <Form onSubmit={onContinue}>
         <Button autofocus isSuccess={isSuccess}>
           {t("labels.continue")}

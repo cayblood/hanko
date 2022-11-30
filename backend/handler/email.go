@@ -75,13 +75,22 @@ func (h *EmailHandler) Create(c echo.Context) error {
 		return dto.ToHttpError(err)
 	}
 
+	emailCount, err := h.persister.GetEmailPersister().CountByUserId(userId)
+	if err != nil {
+		return fmt.Errorf("failed to count user emails: %w", err)
+	}
+
+	if emailCount >= h.cfg.Emails.MaxNumOfAddresses {
+		return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New("max number of email addresses reached"))
+	}
+
 	existingEmail, err := h.persister.GetEmailPersister().FindByAddress(body.Address)
 	if err != nil {
 		return fmt.Errorf("failed to fetch email from db: %w", err)
 	}
 
 	if existingEmail != nil {
-		return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New("email address already exists"))
+		return dto.NewHTTPError(http.StatusBadRequest).SetInternal(errors.New("email address already exists"))
 	}
 
 	email := models.NewEmail(userId, body.Address)
@@ -134,7 +143,7 @@ func (h *EmailHandler) Update(c echo.Context) error {
 	if email == nil {
 		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("the user does not have an email with the specified emailId"))
 	}
-
+	pop.Debug = true
 	return h.persister.Transaction(func(tx *pop.Connection) error {
 		if body.IsPrimary != nil && *body.IsPrimary != email.IsPrimary() {
 			// Update primary email status
@@ -145,7 +154,7 @@ func (h *EmailHandler) Update(c echo.Context) error {
 				return errors.New("user has no primary email")
 			}
 
-			if h.cfg.Flow.RequireEmailVerification && !primaryEmail.Verified {
+			if h.cfg.Emails.RequireVerification && !email.Verified {
 				return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New("email address must be verified to be set as primary email"))
 			}
 
@@ -163,7 +172,7 @@ func (h *EmailHandler) Update(c echo.Context) error {
 			return fmt.Errorf("failed to create audit log: %w", err)
 		}
 
-		return c.JSON(http.StatusNoContent, nil)
+		return c.NoContent(http.StatusNoContent)
 	})
 }
 

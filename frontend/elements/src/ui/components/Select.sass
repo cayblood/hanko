@@ -1,0 +1,70 @@
+@use 'default'
+
+.label2
+  @include default.font
+  background: default.$text-input-background
+  color: default.$text-input-color
+
+  left: 0
+  top: 0
+  position: absolute
+
+  padding: 0 0.3rem
+  margin: 0 0.5rem
+  transition: 0.1s ease
+  transform-origin: left top
+  pointer-events: none
+  transform: translateY(-50%) scale(0.9) !important
+
+select
+  /* Reset Select
+  appearance: none
+  outline: 0
+  border: 0
+  box-shadow: none
+
+  /* Personalize
+  flex: 1
+  padding: 0 1em
+  color: default.$color
+  background-color: default.$container-background
+  background-image: none
+  cursor: pointer
+  width: 100%
+  &::-ms-expand
+    display: none
+
+/* Remove IE arrow
+
+/* Custom Select wrapper
+
+.selectWrapper
+  position: relative
+  display: flex
+  height: default.$input-height
+  margin: default.$item-margin
+  flex-grow: 1
+
+  border-radius: default.$border-radius
+  border-width: default.$table-border-width
+  border-style: default.$table-border-style
+  border-color: default.$table-border-color
+
+
+  &::after
+    content: '\25BD'
+    position: absolute
+    top: 0
+    right: 0
+    padding: .15em
+    background-color: default.$container-background
+    transition: .25s all ease
+    pointer-events: none
+    color: default.$color
+
+  &:hover::after
+    color: default.$select-arrow-color
+
+/* Arrow
+
+/* Transition

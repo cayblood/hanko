@@ -5,6 +5,7 @@ import {
   MaxNumOfPasscodeAttemptsReachedError,
   TechnicalError,
   TooManyRequestsError,
+  UnauthorizedError,
 } from "../Errors";
 import { Client } from "./Client";
 
@@ -33,16 +34,31 @@ class PasscodeClient extends Client {
    * Causes the API to send a new passcode to the user's email address.
    *
    * @param {string} userID - The UUID of the user.
+   * @param {string=} emailID - The UUID of the email address. If unspecified, the email will be sent to the primary email address.
+   * @param {boolean=} isVerification - Indicates the passcode should be sent in order to verify the email address. Please note that the user must be logged in to send a passcode to an unverified email address when the API is configured to require email verification.
    * @return {Promise<Passcode>}
    * @throws {TooManyRequestsError}
    * @throws {RequestTimeoutError}
+   * @throws {UnauthorizedError}
    * @throws {TechnicalError}
    * @see https://docs.hanko.io/api/public#tag/Passcode/operation/passcodeInit
    */
-  async initialize(userID: string): Promise<Passcode> {
-    const response = await this.client.post("/passcode/login/initialize", {
-      user_id: userID,
-    });
+  async initialize(
+    userID: string,
+    emailID?: string,
+    isVerification?: boolean
+  ): Promise<Passcode> {
+    const path = isVerification ? "verification" : "login";
+    const body: any = { user_id: userID };
+
+    if (emailID) {
+      body.email_id = emailID;
+    }
+
+    const response = await this.client.post(
+      `/passcode/${path}/initialize`,
+      body
+    );
 
     if (response.status === 429) {
       const retryAfter = parseInt(
@@ -52,6 +68,8 @@ class PasscodeClient extends Client {
 
       this.state.read().setResendAfter(userID, retryAfter).write();
       throw new TooManyRequestsError(retryAfter);
+    } else if (response.status === 401) {
+      throw new UnauthorizedError();
     } else if (!response.ok) {
       throw new TechnicalError();
     }
@@ -61,8 +79,13 @@ class PasscodeClient extends Client {
     this.state
       .read()
       .setActiveID(userID, passcode.id)
-      .setTTL(userID, passcode.ttl)
-      .write();
+      .setTTL(userID, passcode.ttl);
+
+    if (emailID) {
+      this.state.setEmailID(userID, emailID);
+    }
+
+    this.state.write();
 
     return passcode;
   }

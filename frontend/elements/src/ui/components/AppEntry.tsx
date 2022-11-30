@@ -1,29 +1,35 @@
 import * as preact from "preact";
-import { h, Fragment } from "preact";
+import { Fragment } from "preact";
 import AppProvider from "../contexts/AppProvider";
 import { TranslateProvider } from "@denysvuika/preact-translate";
+
+import { Props } from "../HankoAuth";
 import { translations } from "../Translations";
+
 import UserProvider from "../contexts/UserProvider";
 import PasswordProvider from "../contexts/PasswordProvider";
 import PasscodeProvider from "../contexts/PasscodeProvider";
+import ProfileProvider from "../contexts/ProfileProvider";
 import PageProvider from "../contexts/PageProvider";
-import { Props } from "../HankoAuth";
+
+import Initialize from "../pages/Initialize";
+
+export type ComponentName = "auth" | "re-auth" | "profile";
 
 interface AppEntryProps extends Props {
-  entry: h.JSX.Element;
+  componentName: ComponentName;
   fallbackLang?: string;
 }
 
 export const AppEntry = ({
   api,
   lang = "en",
-  entry,
-  mode,
+  componentName = "auth",
   fallbackLang = "en",
 }: AppEntryProps) => {
   return (
     <Fragment>
-      <AppProvider api={api} mode={mode}>
+      <AppProvider api={api} componentName={componentName}>
         <TranslateProvider
           translations={translations}
           fallbackLang={fallbackLang}
@@ -31,7 +37,9 @@ export const AppEntry = ({
           <UserProvider>
             <PasswordProvider>
               <PasscodeProvider>
-                <PageProvider lang={lang} entry={entry} />
+                <ProfileProvider>
+                  <PageProvider lang={lang} entry={<Initialize />} />
+                </ProfileProvider>
               </PasscodeProvider>
             </PasswordProvider>
           </UserProvider>

@@ -1,7 +1,21 @@
 .ul
+
   padding-inline-start: 0
   list-style-type: none
   margin: 0
 
+  @media screen and (min-width: 420px)
+    display: flex
+
 .li
   display: flex
+
+  @media screen and (min-width: 420px)
+    display: inline-flex
+    &:first-child
+      flex-grow: 1
+    &:last-child
+      flex-grow: 0
+      min-width: 125px
+    &:only-child
+      flex-grow: 1

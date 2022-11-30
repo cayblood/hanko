@@ -1,8 +1,9 @@
 import { PasswordState } from "../state/PasswordState";
+import { PasscodeState } from "../state/PasscodeState";
 import {
   InvalidPasswordError,
   TechnicalError,
-  TooManyRequestsError,
+  TooManyRequestsError, UnauthorizedError,
 } from "../Errors";
 import { Client } from "./Client";
 
@@ -15,7 +16,8 @@ import { Client } from "./Client";
  * @extends {Client}
  */
 class PasswordClient extends Client {
-  state: PasswordState;
+  passwordState: PasswordState;
+  passcodeState: PasscodeState;
 
   // eslint-disable-next-line require-jsdoc
   constructor(api: string, timeout = 13000) {
@@ -24,7 +26,12 @@ class PasswordClient extends Client {
      *  @public
      *  @type {PasswordState}
      */
-    this.state = new PasswordState();
+    this.passwordState = new PasswordState();
+    /**
+     *  @public
+     *  @type {PasscodeState}
+     */
+    this.passcodeState = new PasscodeState();
   }
 
   /**
@@ -52,12 +59,14 @@ class PasswordClient extends Client {
         10
       );
 
-      this.state.read().setRetryAfter(userID, retryAfter).write();
+      this.passwordState.read().setRetryAfter(userID, retryAfter).write();
 
       throw new TooManyRequestsError(retryAfter);
     } else if (!response.ok) {
       throw new TechnicalError();
     }
+
+    this.passcodeState.read().reset(userID).write();
 
     return;
   }
@@ -65,7 +74,6 @@ class PasswordClient extends Client {
   /**
    * Updates a password.
    *
-   * @param {string} userID - The UUID of the user.
    * @param {string} password - The new password.
    * @return {Promise<void>}
    * @throws {RequestTimeoutError}
@@ -73,13 +81,14 @@ class PasswordClient extends Client {
    * @throws {TechnicalError}
    * @see https://docs.hanko.io/api/public#tag/Password/operation/password
    */
-  async update(userID: string, password: string): Promise<void> {
+  async update(password: string): Promise<void> {
     const response = await this.client.put("/password", {
-      user_id: userID,
       password,
     });
 
-    if (!response.ok) {
+    if (response.status === 401) {
+      throw new UnauthorizedError();
+    } else if (!response.ok) {
       throw new TechnicalError();
     }
 
@@ -93,7 +102,7 @@ class PasswordClient extends Client {
    * @return {number}
    */
   getRetryAfter(userID: string) {
-    return this.state.read().getRetryAfter(userID);
+    return this.passwordState.read().getRetryAfter(userID);
   }
 }
 

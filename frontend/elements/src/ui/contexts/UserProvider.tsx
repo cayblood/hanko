@@ -18,8 +18,8 @@ interface Props {
 
 interface Context {
   user: User;
-  email: string;
-  setEmail: StateUpdater<string>;
+  emailAddress: string;
+  setEmailAddress: StateUpdater<string>;
   userInitialize: () => Promise<User>;
 }
 
@@ -28,7 +28,7 @@ export const UserContext = createContext<Context>(null);
 const UserProvider = ({ children }: Props) => {
   const { hanko } = useContext(AppContext);
   const [user, setUser] = useState<User>(null);
-  const [email, setEmail] = useState<string>(null);
+  const [emailAddress, setEmailAddress] = useState<string>(null);
 
   const userInitialize = useCallback(() => {
     return new Promise<User>((resolve, reject) => {
@@ -49,8 +49,8 @@ const UserProvider = ({ children }: Props) => {
     <UserContext.Provider
       value={{
         user,
-        email,
-        setEmail,
+        emailAddress,
+        setEmailAddress,
         userInitialize,
       }}
     >

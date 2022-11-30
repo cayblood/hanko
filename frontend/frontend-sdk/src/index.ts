@@ -11,6 +11,7 @@ import { PasscodeClient } from "./lib/client/PasscodeClient";
 import { PasswordClient } from "./lib/client/PasswordClient";
 import { UserClient } from "./lib/client/UserClient";
 import { WebauthnClient } from "./lib/client/WebauthnClient";
+import { EmailClient } from "./lib/client/EmailClient";
 
 export {
   ConfigClient,
@@ -18,6 +19,7 @@ export {
   WebauthnClient,
   PasswordClient,
   PasscodeClient,
+  EmailClient,
 };
 
 // Utils
@@ -35,6 +37,8 @@ import {
   Credential,
   UserInfo,
   User,
+  Email,
+  Emails,
   Passcode,
 } from "./lib/Dto";
 
@@ -45,6 +49,8 @@ export type {
   Credential,
   UserInfo,
   User,
+  Email,
+  Emails,
   Passcode,
 };
 
@@ -52,32 +58,36 @@ export type {
 
 import {
   HankoError,
-  TechnicalError,
   ConflictError,
-  RequestTimeoutError,
-  WebauthnRequestCancelledError,
+  EmailAddressAlreadyExistsError,
   InvalidPasswordError,
   InvalidPasscodeError,
   InvalidWebauthnCredentialError,
-  PasscodeExpiredError,
+  MaxNumOfEmailAddressesReachedError,
   MaxNumOfPasscodeAttemptsReachedError,
   NotFoundError,
+  PasscodeExpiredError,
+  RequestTimeoutError,
+  TechnicalError,
   TooManyRequestsError,
   UnauthorizedError,
+  WebauthnRequestCancelledError,
 } from "./lib/Errors";
 
 export {
   HankoError,
-  TechnicalError,
   ConflictError,
-  RequestTimeoutError,
-  WebauthnRequestCancelledError,
+  EmailAddressAlreadyExistsError,
   InvalidPasswordError,
   InvalidPasscodeError,
   InvalidWebauthnCredentialError,
-  PasscodeExpiredError,
+  MaxNumOfEmailAddressesReachedError,
   MaxNumOfPasscodeAttemptsReachedError,
   NotFoundError,
+  PasscodeExpiredError,
+  RequestTimeoutError,
+  TechnicalError,
   TooManyRequestsError,
   UnauthorizedError,
+  WebauthnRequestCancelledError,
 };

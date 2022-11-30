@@ -1,21 +1,23 @@
 import * as preact from "preact";
 import { FunctionalComponent, RenderableProps } from "preact";
 import { useContext } from "preact/compat";
-
+import { User } from "@teamhanko/hanko-frontend-sdk";
 import { TranslateContext } from "@denysvuika/preact-translate";
-import { RenderContext } from "../../contexts/PageProvider";
 
 import Link, { Props as LinkProps } from "../Link";
 
-const linkToLoginReAuth = <P extends LinkProps>(
+interface Props {
+  user: User;
+}
+
+const linkToLoginReAuth = <P extends Props & LinkProps>(
   LinkComponent: FunctionalComponent<LinkProps>
 ) => {
   return function LinkToEmailLogin(props: RenderableProps<P>) {
     const { t } = useContext(TranslateContext);
-    const { renderLoginReAuth } = useContext(RenderContext);
 
     const onClick = () => {
-      renderLoginReAuth();
+      // renderReAuth(props.user);
     };
 
     return (
@@ -26,4 +28,4 @@ const linkToLoginReAuth = <P extends LinkProps>(
   };
 };
 
-export default linkToLoginReAuth<LinkProps>(Link);
+export default linkToLoginReAuth<Props & LinkProps>(Link);

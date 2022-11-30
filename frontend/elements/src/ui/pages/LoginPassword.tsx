@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from "preact/compat";
 import {
   HankoError,
   TooManyRequestsError,
+  UserInfo,
 } from "@teamhanko/hanko-frontend-sdk";
 
 import { TranslateContext } from "@denysvuika/preact-translate";
@@ -14,7 +15,6 @@ import { RenderContext } from "../contexts/PageProvider";
 
 import Content from "../components/Content";
 import Footer from "../components/Footer";
-import Headline from "../components/Headline";
 import Form from "../components/Form";
 import InputText from "../components/InputText";
 import Button from "../components/Button";
@@ -24,17 +24,18 @@ import LoadingIndicatorLink from "../components/link/withLoadingIndicator";
 import LinkToEmailLogin from "../components/link/toEmailLogin";
 
 type Props = {
-  userID: string;
+  userInfo: UserInfo;
   initialError: HankoError;
 };
 
-const LoginPassword = ({ userID, initialError }: Props) => {
+const LoginPassword = ({ userInfo, initialError }: Props) => {
   const { t } = useContext(TranslateContext);
   const {
     eventuallyRenderEnrollment,
     renderPasscode,
     emitSuccessEvent,
     renderError,
+    renderHeadline,
   } = useContext(RenderContext);
   const { userInitialize } = useContext(UserContext);
   const { passwordFinalize, passwordRetryAfter } = useContext(PasswordContext);
@@ -55,7 +56,7 @@ const LoginPassword = ({ userID, initialError }: Props) => {
     event.preventDefault();
     setIsPasswordLoading(true);
 
-    passwordFinalize(userID, password)
+    passwordFinalize(userInfo.id, password)
       .then(() => userInitialize())
       .then((u) => eventuallyRenderEnrollment(u, false))
       .then((rendered) => {
@@ -75,7 +76,7 @@ const LoginPassword = ({ userID, initialError }: Props) => {
 
   const onForgotPasswordClick = () => {
     setIsPasscodeLoading(true);
-    renderPasscode(userID, true).catch((e) => renderError(e));
+    renderPasscode(userInfo, true).catch(renderError);
   };
 
   // Automatically clear the too many requests error message
@@ -85,10 +86,14 @@ const LoginPassword = ({ userID, initialError }: Props) => {
     }
   }, [error, passwordRetryAfter]);
 
+  useEffect(
+    () => renderHeadline(t("headlines.loginPassword")),
+    [renderHeadline, t]
+  );
+
   return (
     <Fragment>
       <Content>
-        <Headline>{t("headlines.loginPassword")}</Headline>
         <ErrorMessage error={error} />
         <Form onSubmit={onPasswordSubmit}>
           <InputText

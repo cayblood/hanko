@@ -203,7 +203,7 @@ paths:
     put:
       summary: 'Create/Set a password'
       description: |
-        Create a or update an existing `password` for the user identified by `user_id`.
+        Create a or update an existing `password` for the current user.
 
         This endpoint is only available if passwords have been enabled via [configuration](https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md#hanko-backend-config) option `passwords.enabled`.
       operationId: password
@@ -218,14 +218,9 @@ paths:
             schema:
               type: object
               properties:
-                user_id:
-                  description: The ID of the user to create/set a password for
-                  allOf:
-                    - $ref: '#/components/schemas/UUID4'
                 password:
                   $ref: '#/components/schemas/Password'
               required:
-                - user_id
                 - password
       responses:
         '200':
@@ -573,8 +568,8 @@ paths:
           $ref: '#/components/responses/InternalServerError'
   /emails:
     get:
-      summary: 'Get a list of emails'
-      operationId: listEmail
+      summary: 'Get a list of emails of the current user.'
+      operationId: listEmails
       tags:
         - Email Management
       security:
@@ -589,6 +584,34 @@ paths:
                 $ref: '#/components/schemas/Emails'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: 'Add a new email address to the current user.'
+      operationId: createEmail
+      tags:
+        - Email Management
+      security:
+        - CookieAuth: [ ]
+        - BearerTokenAuth: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+                  format: email
+              required:
+                - address
+      responses:
+        '201':
+          description: 'Email successfully added'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /emails/{id}:
@@ -731,12 +754,12 @@ components:
         description: Hanko Configuration
         url: https://github.com/teamhanko/hanko/blob/main/backend/docs/Config.md
       properties:
-        flow:
-          description: Controls flows during various operations, like account registration, login or profile management.
+        emails:
+          description: Controls the behavior regarding email addresses.
           type: object
           properties:
-            require_email_verification:
-              description: Require email verification after account registration and prevent sign in with unverified email addresses. Also, email addresses can only be marked as primary when verified.
+            require_verification:
+              description: Require email verification after account registration and prevent signing in with unverified email addresses. Also, email addresses can only be marked as primary when they have been verified before.
               type: boolean
         password:
           description: Configuration options concerning passwords
@@ -1066,20 +1089,20 @@ components:
             allOf:
               - $ref: '#/components/schemas/UUID4'
           address:
+            description: The email address
             type: string
             format: email
-          verified:
+          is_verified:
+            description: Indicated the email has been verified.
             type: boolean
           is_primary:
+            description: Indicates it's the primary email address.
             type: boolean
-          created_at:
-            type: string
       example:
         - id: 5333cc5b-c7c4-48cf-8248-9c184ac72b65
           address: john.doe@example.com
-          verified: true
+          is_verified: true
           is_primary: false
-          created_at:
     WebauthnLoginResponse:
       description: 'Response after a successful login with webauthn'
       type: object

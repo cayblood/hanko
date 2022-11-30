@@ -1,15 +1,9 @@
 import * as preact from "preact";
 import registerCustomElement from "preact-custom-element";
 
-import InitializeLogin from "./pages/InitializeLogin";
-import InitializeReAuth from "./pages/InitializeReAuth";
-
 import { AppEntry } from "./components/AppEntry";
 
-export type Mode = "auth" | "reAuth" | "profile";
-
 export interface Props {
-  mode: Mode;
   api: string;
   lang?: string;
 }
@@ -22,13 +16,18 @@ declare interface HankoReAuthElement
   extends preact.JSX.HTMLAttributes<HTMLElement>,
     Props {}
 
+declare interface HankoProfileElement
+  extends preact.JSX.HTMLAttributes<HTMLElement>,
+    Props {}
+
 declare global {
   // eslint-disable-next-line no-unused-vars
   namespace JSX {
     // eslint-disable-next-line no-unused-vars
     interface IntrinsicElements {
       "hanko-auth": HankoAuthElement;
-      "hanko--re-auth": HankoReAuthElement;
+      "hanko-re-auth": HankoReAuthElement;
+      "hanko-profile": HankoProfileElement;
     }
   }
 }
@@ -36,20 +35,15 @@ declare global {
 const styles = window._hankoStyle;
 
 export const HankoAuth = ({ api, lang }: Props) => {
-  return (
-    <AppEntry mode={"auth"} entry={<InitializeLogin />} api={api} lang={lang} />
-  );
+  return <AppEntry componentName={"auth"} api={api} lang={lang} />;
 };
 
 export const HankoReAuth = ({ api, lang }: Props) => {
-  return (
-    <AppEntry
-      mode={"reAuth"}
-      entry={<InitializeReAuth />}
-      api={api}
-      lang={lang}
-    />
-  );
+  return <AppEntry componentName={"re-auth"} api={api} lang={lang} />;
+};
+
+export const HankoProfile = ({ api, lang }: Props) => {
+  return <AppEntry componentName={"profile"} api={api} lang={lang} />;
 };
 
 export interface RegisterOptions {
@@ -71,6 +65,12 @@ export const register = ({
     _register({
       tagName: "hanko-re-auth",
       entry: HankoReAuth,
+      shadow,
+      injectStyles,
+    }),
+    _register({
+      tagName: "hanko-profile",
+      entry: HankoProfile,
       shadow,
       injectStyles,
     }),

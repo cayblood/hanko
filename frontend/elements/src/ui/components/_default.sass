@@ -100,6 +100,13 @@ $headline-font-family: var(--font-family, preset.$font-family)
 $headline-display: preset.$headline-display
 $headline-margin: var(--item-margin, preset.$item-margin)
 
+// Default SubHeadline Styles
+$sub-headline-color: convert-hsl-color(--brand-color, preset.$brand-color-hsl)
+$sub-headline-font-weight: var(--sub-headline-font-weight, preset.$sub-headline-font-weight)
+$sub-headline-font-size: var(--sub-headline-font-size, preset.$sub-headline-font-size)
+$sub-headline-font-family: var(--font-family, preset.$font-family)
+$sub-headline-margin: var(--sub-headline-margin, preset.$sub-headline-margin)
+
 // Default Divider Styles
 
 $divider-color: convert-hsl-color(--color, preset.$color-hsl, $lightness-adjust-light)
@@ -130,6 +137,17 @@ $link-color-disabled: convert-hsl-color(--color, preset.$color-hsl, $lightness-a
 $link-color-hover: convert-hsl-color(--color, preset.$color-hsl)
 $link-text-decoration-hover: preset.$link-text-decoration-hover
 $link-text-decoration: preset.$link-text-decoration
+
+// Default Table Styles
+
+$table-border-width: var(--border-width, preset.$border-width)
+$table-border-style: var(--border-style, preset.$border-style)
+$table-border-color: convert-hsl-color(--color, preset.$color-hsl, $lightness-adjust-light)
+$table-background: convert-hsl-color(--background-color, preset.$background-hsl)
+
+// Default Select Styles
+$select-arrow-color: convert-hsl-color(--brand-color, preset.$brand-color-hsl)
+
 
 // Default Checkmark Styles
 

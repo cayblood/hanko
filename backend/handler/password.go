@@ -35,7 +35,6 @@ func NewPasswordHandler(persister persistence.Persister, sessionManager session.
 }
 
 type PasswordSetBody struct {
-	UserID   string `json:"user_id" validate:"required,uuid4"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -59,7 +58,7 @@ func (h *PasswordHandler) Set(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusBadRequest, "failed to parse userId as uuid").SetInternal(err)
 	}
 
-	user, err := h.persister.GetUserPersister().Get(uuid.FromStringOrNil(body.UserID))
+	user, err := h.persister.GetUserPersister().Get(sessionUserId)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
@@ -82,7 +81,7 @@ func (h *PasswordHandler) Set(c echo.Context) error {
 	}
 
 	if user == nil {
-		err = h.auditLogger.Create(c, models.AuditLogPasswordSetFailed, user, fmt.Errorf("unknown user: %s", body.UserID))
+		err = h.auditLogger.Create(c, models.AuditLogPasswordSetFailed, user, fmt.Errorf("unknown user: %s", sessionUserId.String()))
 		if err != nil {
 			return fmt.Errorf("failed to create audit log: %w", err)
 		}
@@ -110,7 +109,7 @@ func (h *PasswordHandler) Set(c echo.Context) error {
 		}
 
 		newPw := models.PasswordCredential{
-			UserId:   uuid.FromStringOrNil(body.UserID),
+			UserId:   sessionUserId,
 			Password: string(hashedPassword),
 		}
 

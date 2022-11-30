@@ -5,7 +5,11 @@ import { TranslateContext } from "@denysvuika/preact-translate";
 
 import styles from "./Divider.sass";
 
-const Divider = () => {
+interface Props {
+  displayText?: boolean;
+}
+
+const Divider = ({ displayText }: Props) => {
   const { t } = useContext(TranslateContext);
   return (
     <section className={styles.dividerWrapper}>
@@ -14,12 +18,14 @@ const Divider = () => {
         part={"divider"}
         className={styles.divider}
       >
-        <span
-          // @ts-ignore
-          part={"divider-text"}
-        >
-          {t("or")}
-        </span>
+        {displayText && (
+          <span
+            // @ts-ignore
+            part={"divider-text"}
+          >
+            {t("or")}
+          </span>
+        )}
       </div>
     </section>
   );

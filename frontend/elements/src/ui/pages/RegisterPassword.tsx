@@ -1,18 +1,13 @@
 import * as preact from "preact";
-import { useContext, useState } from "preact/compat";
+import { useContext, useEffect, useState } from "preact/compat";
 
-import {
-  User,
-  HankoError,
-  UnauthorizedError,
-} from "@teamhanko/hanko-frontend-sdk";
+import { HankoError, UnauthorizedError } from "@teamhanko/hanko-frontend-sdk";
 
 import { TranslateContext } from "@denysvuika/preact-translate";
 import { AppContext } from "../contexts/AppProvider";
 import { RenderContext } from "../contexts/PageProvider";
 
 import Content from "../components/Content";
-import Headline from "../components/Headline";
 import Form from "../components/Form";
 import InputText from "../components/InputText";
 import Button from "../components/Button";
@@ -20,15 +15,18 @@ import ErrorMessage from "../components/ErrorMessage";
 import Paragraph from "../components/Paragraph";
 
 type Props = {
-  user: User;
   registerAuthenticator: boolean;
 };
 
-const RegisterPassword = ({ user, registerAuthenticator }: Props) => {
+const RegisterPassword = ({ registerAuthenticator }: Props) => {
   const { t } = useContext(TranslateContext);
-  const { hanko } = useContext(AppContext);
-  const { renderError, emitSuccessEvent, renderRegisterAuthenticator } =
-    useContext(RenderContext);
+  const { hanko, config } = useContext(AppContext);
+  const {
+    renderError,
+    emitSuccessEvent,
+    renderRegisterAuthenticator,
+    renderHeadline,
+  } = useContext(RenderContext);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -46,7 +44,7 @@ const RegisterPassword = ({ user, registerAuthenticator }: Props) => {
     setIsLoading(true);
 
     hanko.password
-      .update(user.id, password)
+      .update(password)
       .then(() => {
         if (registerAuthenticator) {
           renderRegisterAuthenticator();
@@ -71,24 +69,28 @@ const RegisterPassword = ({ user, registerAuthenticator }: Props) => {
       });
   };
 
+  useEffect(
+    () => renderHeadline(t("headlines.registerPassword")),
+    [renderHeadline, t]
+  );
+
   return (
     <Content>
-      <Headline>{t("headlines.registerPassword")}</Headline>
       <ErrorMessage error={error} />
+      <Paragraph>{t("texts.passwordFormatHint")}</Paragraph>
       <Form onSubmit={onPasswordSubmit}>
         <InputText
           type={"password"}
           name={"password"}
           autocomplete={"new-password"}
+          minLength={config.password.min_password_length}
+          maxLength={72}
           required={true}
           label={t("labels.password")}
           onInput={onPasswordInput}
           disabled={isSuccess || isLoading}
-          minLength={10}
-          maxLength={32}
           autofocus
         />
-        <Paragraph>{t("texts.passwordFormatHint")}</Paragraph>
         <Button isSuccess={isSuccess} isLoading={isLoading}>
           {t("labels.continue")}
         </Button>

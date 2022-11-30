@@ -1,3 +1,5 @@
+drop_column("users", "primary_email_id")
+
 add_column("users", "email", "string", { "null": true })
 add_column("users", "verified", "bool", { "null": true })
 

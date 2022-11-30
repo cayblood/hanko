@@ -2,7 +2,7 @@ import * as preact from "preact";
 import { Fragment } from "preact";
 import { useContext, useEffect, useState } from "preact/compat";
 
-import { User, ConflictError, HankoError } from "@teamhanko/hanko-frontend-sdk";
+import { User, HankoError, UserInfo } from "@teamhanko/hanko-frontend-sdk";
 
 import { AppContext } from "../contexts/AppProvider";
 import { TranslateContext } from "@denysvuika/preact-translate";
@@ -10,7 +10,6 @@ import { UserContext } from "../contexts/UserProvider";
 import { RenderContext } from "../contexts/PageProvider";
 
 import Content from "../components/Content";
-import Headline from "../components/Headline";
 import Form from "../components/Form";
 import Button from "../components/Button";
 import Footer from "../components/Footer";
@@ -22,59 +21,75 @@ import LinkToEmailLogin from "../components/link/toEmailLogin";
 const RegisterConfirm = () => {
   const { t } = useContext(TranslateContext);
   const { hanko, config } = useContext(AppContext);
-  const { email } = useContext(UserContext);
-  const { renderPasscode } = useContext(RenderContext);
+  const { emailAddress } = useContext(UserContext);
+  const {
+    renderPasscode,
+    emitSuccessEvent,
+    renderHeadline,
+    eventuallyRenderEnrollment,
+  } = useContext(RenderContext);
 
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [error, setError] = useState<HankoError>(null);
 
   const onConfirmSubmit = (event: Event) => {
     event.preventDefault();
     setIsLoading(true);
-
-    hanko.user
-      .create(email)
-      .then((u) => setUser(u))
-      .catch((e) => {
-        if (e instanceof ConflictError) {
-          return hanko.user.getInfo(email);
-        }
-
-        throw e;
-      })
-      .then((userInfo) => {
-        if (userInfo) {
-          return renderPasscode(userInfo.id, config.password.enabled);
-        }
-        return;
-      })
-      .catch((e) => {
-        setIsLoading(false);
-        setError(e);
-      });
+    hanko.user.create(emailAddress).then(setUser).catch(setError);
   };
 
   // User has been created
   useEffect(() => {
-    if (user === null || config === null) {
-      return;
+    if (!user || !config) return;
+    if (config.emails.require_verification) {
+      const userInfo: UserInfo = {
+        id: user.id,
+        email_id: "",
+        verified: false,
+        has_webauthn_credential: false,
+      };
+      renderPasscode(userInfo, config.password.enabled).catch((e) => {
+        setIsLoading(false);
+        setError(e);
+      });
+    } else {
+      eventuallyRenderEnrollment(user, config.password.enabled)
+        .then((rendered) => {
+          if (!rendered) {
+            setIsSuccess(true);
+            setIsLoading(false);
+            emitSuccessEvent();
+          }
+          return;
+        })
+        .catch((e) => {
+          setIsLoading(false);
+          setError(e);
+        });
     }
+  }, [
+    config,
+    emailAddress,
+    emitSuccessEvent,
+    eventuallyRenderEnrollment,
+    renderPasscode,
+    user,
+  ]);
 
-    renderPasscode(user.id, config.password.enabled).catch((e) => {
-      setIsLoading(false);
-      setError(e);
-    });
-  }, [config, renderPasscode, user]);
+  useEffect(
+    () => renderHeadline(t("headlines.registerConfirm")),
+    [renderHeadline, t]
+  );
 
   return (
     <Fragment>
       <Content>
-        <Headline>{t("headlines.registerConfirm")}</Headline>
         <ErrorMessage error={error} />
+        <Paragraph>{t("texts.createAccount", { emailAddress })}</Paragraph>
         <Form onSubmit={onConfirmSubmit}>
-          <Paragraph>{t("texts.createAccount", { email })}</Paragraph>
-          <Button autofocus isLoading={isLoading}>
+          <Button autofocus isLoading={isLoading} isSuccess={isSuccess}>
             {t("labels.signUp")}
           </Button>
         </Form>

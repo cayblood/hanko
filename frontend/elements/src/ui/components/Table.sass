@@ -1,0 +1,48 @@
+@use 'default'
+
+.tableWrapper
+  display: flex
+
+.table
+  @include default.font
+  text-align: left
+  color: default.$color
+  margin: default.$item-margin
+  width: 100%
+
+
+  border-style: hidden
+  border-collapse: collapse
+  table-layout: fixed
+
+.th
+  vertical-align: middle
+  border-radius: default.$border-radius
+  border-width: default.$table-border-width
+  border-style: default.$table-border-style
+  border-color: default.$table-border-color
+  height: default.$input-height
+
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+  &:not(:first-child)
+    text-align: center
+    width: 20%
+
+.td
+  height: default.$input-height
+  vertical-align: middle
+  border-radius: default.$border-radius
+  border-width: default.$table-border-width
+  border-style: default.$table-border-style
+  border-color: default.$table-border-color
+
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+  &:not(:first-child)
+    text-align: center
+

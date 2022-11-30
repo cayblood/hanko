@@ -77,7 +77,7 @@ func (h *UserHandler) Create(c echo.Context) error {
 			return fmt.Errorf("failed to store primary email: %w", err)
 		}
 
-		if !h.cfg.Flow.RequireEmailVerification {
+		if !h.cfg.Emails.RequireVerification {
 			token, err := h.sessionManager.GenerateJWT(newUser.ID)
 			if err != nil {
 				return fmt.Errorf("failed to generate jwt: %w", err)

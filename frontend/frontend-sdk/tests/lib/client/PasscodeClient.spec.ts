@@ -9,6 +9,7 @@ import { Response } from "../../../src/lib/client/HttpClient";
 
 const userID = "test-user-1";
 const passcodeID = "test-passcode-1";
+const emailID = "test-email-1";
 const passcodeTTL = 180;
 const passcodeRetryAfter = 180;
 const passcodeValue = "123456";
@@ -47,6 +48,25 @@ describe("PasscodeClient.initialize()", () => {
     expect(passcodeClient.client.post).toHaveBeenCalledWith(
       "/passcode/login/initialize",
       { user_id: userID }
+    );
+  });
+
+  it("should initialize a passcode verification", async () => {
+    const response = new Response(new XMLHttpRequest());
+    response.ok = true;
+
+    jest.spyOn(passcodeClient.client, "post").mockResolvedValue(response);
+    jest.spyOn(passcodeClient.state, "setEmailID");
+
+    await passcodeClient.initialize(userID, emailID, true);
+
+    expect(passcodeClient.state.setEmailID).toHaveBeenCalledWith(
+      userID,
+      emailID
+    );
+    expect(passcodeClient.client.post).toHaveBeenCalledWith(
+      "/passcode/verification/initialize",
+      { user_id: userID, email_id: emailID }
     );
   });
 

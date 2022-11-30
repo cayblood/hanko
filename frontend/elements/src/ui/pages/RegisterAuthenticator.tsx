@@ -1,6 +1,6 @@
 import * as preact from "preact";
 import { Fragment } from "preact";
-import { useContext, useState } from "preact/compat";
+import { useContext, useEffect, useState } from "preact/compat";
 
 import {
   HankoError,
@@ -13,7 +13,6 @@ import { AppContext } from "../contexts/AppProvider";
 import { RenderContext } from "../contexts/PageProvider";
 
 import Content from "../components/Content";
-import Headline from "../components/Headline";
 import Form from "../components/Form";
 import Button from "../components/Button";
 import ErrorMessage from "../components/ErrorMessage";
@@ -25,7 +24,8 @@ import LoadingIndicatorLink from "../components/link/withLoadingIndicator";
 const RegisterAuthenticator = () => {
   const { t } = useContext(TranslateContext);
   const { hanko } = useContext(AppContext);
-  const { renderError, emitSuccessEvent } = useContext(RenderContext);
+  const { renderError, emitSuccessEvent, renderHeadline } =
+    useContext(RenderContext);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -62,13 +62,17 @@ const RegisterAuthenticator = () => {
     emitSuccessEvent();
   };
 
+  useEffect(
+    () => renderHeadline(t("headlines.registerAuthenticator")),
+    [renderHeadline, t]
+  );
+
   return (
     <Fragment>
       <Content>
-        <Headline>{t("headlines.registerAuthenticator")}</Headline>
         <ErrorMessage error={error} />
+        <Paragraph>{t("texts.setupPasskey")}</Paragraph>
         <Form onSubmit={registerWebAuthnCredential}>
-          <Paragraph>{t("texts.setupPasskey")}</Paragraph>
           <Button autofocus isSuccess={isSuccess} isLoading={isLoading}>
             {t("labels.registerAuthenticator")}
           </Button>

@@ -8,6 +8,7 @@ import {
   NotFoundError,
   WebauthnRequestCancelledError,
   WebauthnSupport,
+  UserInfo,
 } from "@teamhanko/hanko-frontend-sdk";
 
 import { TranslateContext } from "@denysvuika/preact-translate";
@@ -17,7 +18,6 @@ import { UserContext } from "../contexts/UserProvider";
 
 import Button from "../components/Button";
 import InputText from "../components/InputText";
-import Headline from "../components/Headline";
 import Content from "../components/Content";
 import Form from "../components/Form";
 import Divider from "../components/Divider";
@@ -25,13 +25,14 @@ import ErrorMessage from "../components/ErrorMessage";
 
 const LoginEmail = () => {
   const { t } = useContext(TranslateContext);
-  const { email, setEmail } = useContext(UserContext);
+  const { emailAddress, setEmailAddress } = useContext(UserContext);
   const { hanko, config } = useContext(AppContext);
   const {
     renderPassword,
     renderPasscode,
     emitSuccessEvent,
     renderRegisterConfirm,
+    renderHeadline,
   } = useContext(RenderContext);
 
   const [isPasskeyLoginLoading, setIsPasskeyLoginLoading] =
@@ -55,29 +56,29 @@ const LoginEmail = () => {
 
   const onEmailInput = (event: Event) => {
     if (event.target instanceof HTMLInputElement) {
-      setEmail(event.target.value);
+      setEmailAddress(event.target.value);
     }
   };
 
   const loginWithEmailAndWebAuthn = () => {
-    let userID: string;
+    let userInfo: UserInfo;
     let webauthnLoginInitiated: boolean;
 
     return hanko.user
-      .getInfo(email)
-      .then((userInfo) => {
-        if (!userInfo.verified) {
-          return renderPasscode(userInfo.id, config.password.enabled);
+      .getInfo(emailAddress)
+      .then((u) => {
+        userInfo = u;
+        if (!userInfo.verified && config.emails.require_verification) {
+          return renderPasscode(userInfo, config.password.enabled, false);
         }
 
         if (
           !userInfo.has_webauthn_credential ||
           isConditionalMediationSupported
         ) {
-          return renderAlternateLoginMethod(userInfo.id);
+          return renderAlternateLoginMethod(userInfo);
         }
 
-        userID = userInfo.id;
         webauthnLoginInitiated = true;
         return hanko.webauthn.login(userInfo.id);
       })
@@ -96,7 +97,7 @@ const LoginEmail = () => {
         }
 
         if (e instanceof WebauthnRequestCancelledError) {
-          return renderAlternateLoginMethod(userID);
+          return renderAlternateLoginMethod(userInfo);
         }
 
         throw e;
@@ -105,13 +106,13 @@ const LoginEmail = () => {
 
   const loginWithEmail = () => {
     return hanko.user
-      .getInfo(email)
-      .then((info) => {
-        if (!info.verified) {
-          return renderPasscode(info.id, config.password.enabled);
+      .getInfo(emailAddress)
+      .then((userInfo) => {
+        if (!userInfo.verified && config.emails.require_verification) {
+          return renderPasscode(userInfo, config.password.enabled, false);
         }
 
-        return renderAlternateLoginMethod(info.id);
+        return renderAlternateLoginMethod(userInfo);
       })
       .catch((e) => {
         if (e instanceof NotFoundError) {
@@ -159,14 +160,14 @@ const LoginEmail = () => {
   };
 
   const renderAlternateLoginMethod = useCallback(
-    (userID: string) => {
+    (userInfo: UserInfo) => {
       if (config.password.enabled) {
-        return renderPassword(userID).catch((e) => {
+        return renderPassword(userInfo).catch((e) => {
           throw e;
         });
       }
 
-      return renderPasscode(userID, false).catch((e) => {
+      return renderPasscode(userInfo, false).catch((e) => {
         throw e;
       });
     },
@@ -208,9 +209,13 @@ const LoginEmail = () => {
       .catch((e) => setError(new TechnicalError(e)));
   }, []);
 
+  useEffect(
+    () => renderHeadline(t("headlines.loginEmail")),
+    [renderHeadline, t]
+  );
+
   return (
     <Content>
-      <Headline>{t("headlines.loginEmail")}</Headline>
       <ErrorMessage error={error} />
       <Form onSubmit={onEmailSubmit}>
         <InputText
@@ -220,7 +225,7 @@ const LoginEmail = () => {
           autoCorrect={"off"}
           required={true}
           onInput={onEmailInput}
-          value={email}
+          value={emailAddress}
           label={t("labels.email")}
           pattern={"^.*[^0-9]+$"}
           disabled={

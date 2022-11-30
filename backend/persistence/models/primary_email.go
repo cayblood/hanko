@@ -11,11 +11,11 @@ import (
 type PrimaryEmail struct {
 	ID        uuid.UUID `db:"id" json:"id"`
 	EmailID   uuid.UUID `db:"email_id" json:"email_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	Email     *Email    `belongs_to:"email" json:"email,omitempty"`
-	User      *User     `belongs_to:"user" json:"user,omitempty"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	UserID    uuid.UUID `db:"user_id" json:"-"`
+	Email     *Email    `belongs_to:"email" json:"email"`
+	User      *User     `belongs_to:"user" json:"-"`
+	CreatedAt time.Time `db:"created_at" json:"-"`
+	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
 func NewPrimaryEmail(emailId uuid.UUID, userId uuid.UUID) *PrimaryEmail {

@@ -6,16 +6,18 @@ import {
   HankoError,
   PasscodeExpiredError,
   TechnicalError,
+  UnauthorizedError,
+  UserInfo,
 } from "@teamhanko/hanko-frontend-sdk";
 
 import { UserContext } from "../contexts/UserProvider";
 import { PasscodeContext } from "../contexts/PasscodeProvider";
 import { TranslateContext } from "@denysvuika/preact-translate";
 import { RenderContext } from "../contexts/PageProvider";
+import { ProfileContext } from "../contexts/ProfileProvider";
 
 import Button from "../components/Button";
 import Content from "../components/Content";
-import Headline from "../components/Headline";
 import Form from "../components/Form";
 import Footer from "../components/Footer";
 import InputPasscode from "../components/InputPasscode";
@@ -23,30 +25,39 @@ import ErrorMessage from "../components/ErrorMessage";
 import Paragraph from "../components/Paragraph";
 
 import LoadingIndicatorLink from "../components/link/withLoadingIndicator";
+import LinkToProfile from "../components/link/toProfile";
 import LinkToEmailLogin from "../components/link/toEmailLogin";
-import LinkToLoginReAuth from "../components/link/toLoginReAuth";
 import LinkToPasswordLogin from "../components/link/toPasswordLogin";
 
 import { AppContext } from "../contexts/AppProvider";
+import SubHeadline from "../components/SubHeadline";
 
 type Props = {
-  userID: string;
+  userInfo: UserInfo;
   recoverPassword: boolean;
   numberOfDigits?: number;
+  isVerification?: boolean;
   initialError?: HankoError;
 };
 
 const LoginPasscode = ({
-  userID,
-  recoverPassword,
+  userInfo,
+  recoverPassword = false,
+  isVerification = false,
   numberOfDigits = 6,
   initialError,
 }: Props) => {
-  const { mode } = useContext(AppContext);
+  const { componentName } = useContext(AppContext);
   const { t } = useContext(TranslateContext);
-  const { eventuallyRenderEnrollment, emitSuccessEvent } =
-    useContext(RenderContext);
-  const { email, userInitialize } = useContext(UserContext);
+  const {
+    eventuallyRenderEnrollment,
+    emitSuccessEvent,
+    renderProfile,
+    renderHeadline,
+    renderReAuth,
+  } = useContext(RenderContext);
+  const { userInitialize, emailAddress, user } = useContext(UserContext);
+  const { emails } = useContext(ProfileContext);
   const {
     passcodeTTL,
     passcodeIsActive,
@@ -74,14 +85,25 @@ const LoginPasscode = ({
   const passcodeSubmit = (code: string[]) => {
     setIsPasscodeLoading(true);
 
-    passcodeFinalize(userID, code.join(""))
+    passcodeFinalize(userInfo.id, code.join(""))
       .then(() => userInitialize())
-      .then((u) => eventuallyRenderEnrollment(u, recoverPassword))
+      .then((u) => {
+        if (componentName === "auth") {
+          return eventuallyRenderEnrollment(u, recoverPassword);
+        }
+        return false;
+      })
       .then((rendered) => {
         if (!rendered) {
           setIsPasscodeSuccess(true);
           setIsPasscodeLoading(false);
-          emitSuccessEvent();
+          if (componentName === "auth") {
+            emitSuccessEvent();
+          }
+        }
+
+        if (componentName === "profile") {
+          return renderProfile();
         }
 
         return;
@@ -108,7 +130,7 @@ const LoginPasscode = ({
     setIsResendSuccess(false);
     setIsResendLoading(true);
 
-    passcodeResend(userID)
+    passcodeResend(userInfo.id, userInfo.email_id, isVerification)
       .then(() => {
         setIsResendSuccess(true);
         setPasscodeDigits([]);
@@ -120,6 +142,11 @@ const LoginPasscode = ({
       .catch((e) => {
         setIsResendLoading(false);
         setIsResendSuccess(false);
+
+        if (componentName === "profile" && e instanceof UnauthorizedError) {
+          return renderReAuth(user, emails);
+        }
+
         setError(e);
       });
   };
@@ -130,11 +157,19 @@ const LoginPasscode = ({
     }
   }, [isPasscodeSuccess, passcodeTTL]);
 
+  useEffect(() => {
+    const text = componentName === "profile" ? "profile" : "loginPasscode";
+    renderHeadline(t(`headlines.${text}`));
+  }, [componentName, renderHeadline, t]);
+
   return (
     <Fragment>
       <Content>
-        <Headline>{t("headlines.loginPasscode")}</Headline>
+        {componentName === "profile" && (
+          <SubHeadline>{t("headlines.loginPasscode")}</SubHeadline>
+        )}
         <ErrorMessage error={error} />
+        <Paragraph>{t("texts.enterPasscode", { emailAddress })}</Paragraph>
         <Form onSubmit={onPasscodeSubmitClick}>
           <InputPasscode
             onInput={onPasscodeInput}
@@ -148,7 +183,6 @@ const LoginPasscode = ({
               isResendLoading
             }
           />
-          <Paragraph>{t("texts.enterPasscode", { email })}</Paragraph>
           <Button
             disabled={passcodeTTL <= 0 || !passcodeIsActive || isResendLoading}
             isLoading={isPasscodeLoading}
@@ -161,11 +195,11 @@ const LoginPasscode = ({
       <Footer>
         {recoverPassword ? (
           <LinkToPasswordLogin
-            userID={userID}
+            userInfo={userInfo}
             disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
           />
-        ) : mode === "reAuth" ? (
-          <LinkToLoginReAuth
+        ) : componentName === "profile" ? (
+          <LinkToProfile
             disabled={isResendLoading || isPasscodeLoading || isPasscodeSuccess}
           />
         ) : (
