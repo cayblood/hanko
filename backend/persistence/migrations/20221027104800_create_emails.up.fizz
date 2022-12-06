@@ -1,6 +1,6 @@
 create_table("emails") {
 	t.Column("id", "uuid")
-	t.Column("user_id", "uuid")
+	t.Column("user_id", "uuid", { "null": true })
 	t.Column("address", "string")
 	t.Column("verified", "bool")
 	t.PrimaryKey("id")

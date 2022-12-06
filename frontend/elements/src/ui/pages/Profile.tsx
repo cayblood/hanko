@@ -5,6 +5,7 @@ import {
   HankoError,
   Email,
   UnauthorizedError,
+  UserInfo,
 } from "@teamhanko/hanko-frontend-sdk";
 
 import { useContext, useEffect, useMemo, useState } from "preact/compat";
@@ -27,11 +28,12 @@ import SubHeadline from "../components/SubHeadline";
 const Profile = () => {
   const { t } = useContext(TranslateContext);
   const { hanko, config } = useContext(AppContext);
-  const { user } = useContext(UserContext);
+  const { user, setEmailAddress, emailAddress } = useContext(UserContext);
   const { emails, profileInitialize } = useContext(ProfileContext);
-  const { renderHeadline, renderReAuth } = useContext(RenderContext);
+  const { renderHeadline, renderReAuth, renderPasscode } =
+    useContext(RenderContext);
   const [error, setError] = useState<HankoError>();
-  const [newEmail, setNewEmail] = useState<string>("");
+  const [newEmail, setNewEmail] = useState<string>(emailAddress);
   const [newPrimaryEmailValue, setNewPrimaryEmailValue] = useState<string>("");
   const [deleteEmailValue, setDeleteEmailValue] = useState<string>("");
   const [newPrimaryEmail, setNewPrimaryEmail] = useState<Email>(null);
@@ -41,6 +43,43 @@ const Profile = () => {
 
   const addEmail = (event: Event) => {
     event.preventDefault();
+    return config.emails.require_verification
+      ? addEmailWithVerification()
+      : addEmailWithoutVerification();
+  };
+
+  const addEmailWithVerification = () => {
+    setIsNewEmailLoading(true);
+    hanko.email
+      .create(newEmail)
+      .then((email) => {
+        setEmailAddress(newEmail);
+        const userInfo: UserInfo = {
+          id: user.id,
+          email_id: email.id,
+          verified: email.is_verified,
+          has_webauthn_credential:
+            user.webauthn_credentials && user.webauthn_credentials.length > 0,
+        };
+
+        return renderPasscode(userInfo, false, true);
+      })
+      .then(() => {
+        setNewEmail("");
+        setIsNewEmailLoading(false);
+        return;
+      })
+      .catch((e) => {
+        if (e instanceof UnauthorizedError) {
+          return renderReAuth(user, emails);
+        }
+
+        setError(e);
+        setIsNewEmailLoading(false);
+      });
+  };
+
+  const addEmailWithoutVerification = () => {
     setIsNewEmailLoading(true);
     hanko.email
       .create(newEmail)

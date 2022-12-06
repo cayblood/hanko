@@ -46,7 +46,7 @@ const RegisterConfirm = () => {
     if (config.emails.require_verification) {
       const userInfo: UserInfo = {
         id: user.id,
-        email_id: "",
+        email_id: user.email_id,
         verified: false,
         has_webauthn_credential: false,
       };

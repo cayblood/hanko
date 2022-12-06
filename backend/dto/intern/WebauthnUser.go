@@ -8,14 +8,13 @@ import (
 )
 
 func NewWebauthnUser(user models.User, credentials []models.WebauthnCredential) (*WebauthnUser, error) {
-	primaryEmail := user.GetPrimaryEmail()
-	if primaryEmail == nil {
+	if user.PrimaryEmail == nil {
 		return nil, errors.New("primary email unavailable")
 	}
 
 	return &WebauthnUser{
 		UserId:              user.ID,
-		Email:               primaryEmail.Address,
+		Email:               user.PrimaryEmail.Email.Address,
 		WebauthnCredentials: credentials,
 	}, nil
 }

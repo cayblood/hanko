@@ -94,6 +94,7 @@ interface Credential {
  */
 interface User {
   id: string;
+  email_id: string;
   webauthn_credentials: Credential[];
 }
 

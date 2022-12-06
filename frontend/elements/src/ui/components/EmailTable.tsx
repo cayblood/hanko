@@ -1,5 +1,5 @@
 import * as preact from "preact";
-import { useContext, useState } from "preact/compat";
+import { useContext, useState, useMemo } from "preact/compat";
 
 import {
   Email,
@@ -13,6 +13,7 @@ import Table, { Columns } from "./Table";
 import Checkmark from "./Checkmark";
 import LoadingIndicatorLink from "../components/link/withLoadingIndicator";
 
+import { AppContext } from "../contexts/AppProvider";
 import { RenderContext } from "../contexts/PageProvider";
 import { UserContext } from "../contexts/UserProvider";
 import { Fragment } from "preact";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const EmailTable = ({ emails = [], setError }: Props) => {
+  const { config } = useContext(AppContext);
   const { user, emailAddress, setEmailAddress } = useContext(UserContext);
   const { renderPasscode, renderReAuth } = useContext(RenderContext);
 
@@ -50,35 +52,45 @@ const EmailTable = ({ emails = [], setError }: Props) => {
       });
   };
 
-  const columns: Columns<Email> = [
-    {
-      name: "Address",
-      selector: (email) => {
-        if (email.is_primary) {
-          return (
-            <Fragment>
-              <b>{email.address}</b> - <i>primary</i>
-            </Fragment>
-          );
-        }
-        return email.address;
+  const columns = useMemo(() => {
+    const defaultColumns: Columns<Email> = [
+      {
+        name: "Address",
+        selector: (email) => {
+          if (email.is_primary) {
+            return (
+              <Fragment>
+                <b>{email.address}</b> - <i>primary</i>
+              </Fragment>
+            );
+          }
+          return email.address;
+        },
       },
-    },
-    {
-      name: "Verified",
-      selector: (email) =>
-        email.is_verified ? (
-          <Checkmark />
-        ) : (
-          <LoadingIndicatorLink
-            onClick={() => verify(email)}
-            isLoading={isLoading && email.address === emailAddress}
-          >
-            verify
-          </LoadingIndicatorLink>
-        ),
-    },
-  ];
+    ];
+
+    const extraColumns: Columns<Email> = [
+      {
+        name: "Verified",
+        selector: (email) =>
+          email.is_verified ? (
+            <Checkmark />
+          ) : (
+            <LoadingIndicatorLink
+              onClick={() => verify(email)}
+              isLoading={isLoading && email.address === emailAddress}
+            >
+              verify
+            </LoadingIndicatorLink>
+          ),
+      },
+    ];
+
+    return !config.emails.require_verification
+      ? defaultColumns.concat(extraColumns)
+      : defaultColumns;
+  }, [config.emails.require_verification, emailAddress, isLoading, verify]);
+
   return <Table columns={columns} data={emails} />;
 };
 

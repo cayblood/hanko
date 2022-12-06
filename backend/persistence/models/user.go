@@ -11,8 +11,9 @@ import (
 // User is used by pop to map your users database table to your go code.
 type User struct {
 	ID                  uuid.UUID            `db:"id" json:"id"`
+	PrimaryEmailID      *uuid.UUID           `db:"primary_email_id" json:"primary_email_id"`
 	WebauthnCredentials []WebauthnCredential `has_many:"webauthn_credentials" json:"webauthn_credentials,omitempty"`
-	Emails              []Email              `has_many:"emails" json:"-"`
+	Emails              Emails               `has_many:"emails" json:"-"`
 	PrimaryEmail        *PrimaryEmail        `has_one:"primary_email" json:"primary_email,omitempty"`
 	CreatedAt           time.Time            `db:"created_at" json:"created_at"`
 	UpdatedAt           time.Time            `db:"updated_at" json:"updated_at"`
@@ -25,15 +26,6 @@ func NewUser() User {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-}
-
-func (user *User) GetPrimaryEmail() *Email {
-	for _, email := range user.Emails {
-		if email.IsPrimary() {
-			return &email
-		}
-	}
-	return nil
 }
 
 func (user *User) GetEmailById(emailId uuid.UUID) *Email {

@@ -96,27 +96,23 @@ func (h *PasscodeHandler) Init(c echo.Context) error {
 
 	if !emailId.IsNil() {
 		// Send the passcode to a specific email
-		email = user.GetEmailById(emailId)
+		email, err = h.persister.GetEmailPersister().Get(emailId)
 		if email == nil {
 			return dto.NewHTTPError(http.StatusBadRequest, "the specified emailId is not available")
 		}
 	} else {
 		// Send the email to the address marked as primary email
-		email = user.GetPrimaryEmail()
-		if email == nil {
+		if email = user.PrimaryEmail.Email; email == nil {
 			return errors.New("no primary email available")
 		}
 	}
 
 	if h.cfg.Emails.RequireVerification {
-		// Check if the user is authorized to send a passcode to the specified email address.
-		if !email.Verified && !email.IsPrimary() {
-			// When the email is verified or primary, a passcode can be sent without a valid JWT, e.g. on sign in (or
-			// password recovery) or after account registration. Otherwise, we need to check a valid JWT is present,
-			// e.g. when verifying another email address, added to the account after account registration. Please note
-			// that the primary email can only be changed to another verified email address (as long as
-			// `emails.require_verification` is turned on) and that the user needs to verify the primary email
-			// address provided during account registration, in order to be logged in the first time.
+		// When email verification is required a passcode can only be sent to a verified email address unless there is
+		// currently no verified email address.
+		verifiedEmails := user.Emails.GetVerified()
+
+		if len(verifiedEmails) > 0 {
 			if sessionToken, ok := c.Get("session").(jwt.Token); !ok || sessionToken == nil {
 				return dto.NewHTTPError(http.StatusUnauthorized).SetInternal(errors.New("email address must be verified"))
 			}
@@ -140,7 +136,7 @@ func (h *PasscodeHandler) Init(c echo.Context) error {
 	passcodeModel := models.Passcode{
 		ID:        passcodeId,
 		UserId:    userId,
-		EmailId:   email.ID,
+		EmailID:   email.ID,
 		Ttl:       h.TTL,
 		Code:      string(hashedPasscode),
 		CreatedAt: now,
@@ -212,6 +208,7 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 		passcodePersister := h.persister.GetPasscodePersisterWithConnection(tx)
 		userPersister := h.persister.GetUserPersisterWithConnection(tx)
 		emailPersister := h.persister.GetEmailPersisterWithConnection(tx)
+		primaryEmailPersister := h.persister.GetPrimaryEmailPersisterWithConnection(tx)
 		passcode, err := passcodePersister.Get(passcodeId)
 		if err != nil {
 			return fmt.Errorf("failed to get passcode: %w", err)
@@ -275,16 +272,34 @@ func (h *PasscodeHandler) Finish(c echo.Context) error {
 			return fmt.Errorf("failed to delete passcode: %w", err)
 		}
 
-		// Update email verified status
-		email := user.GetEmailById(passcode.EmailId)
-		if email == nil {
-			return errors.New("email address not available anymore")
+		// Update email verified status and assign the email to the user.
+		email := passcode.Email
+
+		if email.UserID != nil && *email.UserID != user.ID {
+			return dto.NewHTTPError(http.StatusUnauthorized, "passcode email has been claimed by another user")
 		}
 
 		if !email.Verified {
 			email.Verified = true
+			email.UserID = &user.ID
 
-			err = emailPersister.Update(*email)
+			if user.PrimaryEmail == nil {
+				email.PrimaryEmail = models.NewPrimaryEmail(email.ID, user.ID)
+				err = primaryEmailPersister.Create(*email.PrimaryEmail)
+				if err != nil {
+					return fmt.Errorf("failed to create primary email: %w", err)
+				}
+
+				// Ensure the primary email can't be deleted by referencing the object via the user table.
+				user.PrimaryEmailID = &email.PrimaryEmail.ID
+
+				err = userPersister.Update(*user)
+				if err != nil {
+					return fmt.Errorf("failed to cupdate user: %w", err)
+				}
+			}
+
+			err = emailPersister.Update(email)
 			if err != nil {
 				return fmt.Errorf("failed to update the email verified status: %w", err)
 			}

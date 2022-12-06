@@ -84,29 +84,55 @@ func (h *EmailHandler) Create(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New("max number of email addresses reached"))
 	}
 
-	existingEmail, err := h.persister.GetEmailPersister().FindByAddress(body.Address)
+	email, err := h.persister.GetEmailPersister().FindByAddress(body.Address)
 	if err != nil {
 		return fmt.Errorf("failed to fetch email from db: %w", err)
 	}
 
-	if existingEmail != nil {
-		return dto.NewHTTPError(http.StatusBadRequest).SetInternal(errors.New("email address already exists"))
-	}
-
-	email := models.NewEmail(userId, body.Address)
-
 	return h.persister.Transaction(func(tx *pop.Connection) error {
-		err = h.persister.GetEmailPersisterWithConnection(tx).Create(*email)
+		user, err := h.persister.GetUserPersister().Get(userId)
 		if err != nil {
-			return errors.New("failed to store email to db")
+			return fmt.Errorf("failed to fetch user from db: %w", err)
 		}
 
-		err = h.auditLogger.Create(c, models.AuditLogEmailCreateSucceeded, email.User, nil)
+		if email != nil {
+			if email.UserID != nil {
+				// The email address already exists and is assigned to a user.
+				return dto.NewHTTPError(http.StatusBadRequest).SetInternal(errors.New("email address already exists"))
+			}
+
+			if !h.cfg.Emails.RequireVerification {
+				// Email verification is now turned off, but there is no user assigned. This should only happen, when
+				// changing the backend configuration after a user has left an unverified email.
+				email.UserID = &user.ID
+
+				err = h.persister.GetEmailPersisterWithConnection(tx).Update(*email)
+				if err != nil {
+					return fmt.Errorf("failed to update the existing email: %w", err)
+				}
+			}
+		} else {
+			// The email address has not been registered so far.
+			if h.cfg.Emails.RequireVerification {
+				// The email address will be assigned to a user after passcode verification.
+				email = models.NewEmail(nil, body.Address)
+			} else {
+				// No verification required - assign the email to the given user.
+				email = models.NewEmail(&user.ID, body.Address)
+			}
+
+			err = h.persister.GetEmailPersisterWithConnection(tx).Create(*email)
+			if err != nil {
+				return fmt.Errorf("failed to store email to db: %w", err)
+			}
+		}
+
+		err = h.auditLogger.Create(c, models.AuditLogEmailCreateSucceeded, user, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create audit log: %w", err)
 		}
 
-		return c.JSON(http.StatusCreated, nil)
+		return c.JSON(http.StatusOK, email)
 	})
 }
 
@@ -143,12 +169,12 @@ func (h *EmailHandler) Update(c echo.Context) error {
 	if email == nil {
 		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("the user does not have an email with the specified emailId"))
 	}
-	pop.Debug = true
+
 	return h.persister.Transaction(func(tx *pop.Connection) error {
 		if body.IsPrimary != nil && *body.IsPrimary != email.IsPrimary() {
 			// Update primary email status
 
-			primaryEmail := user.GetPrimaryEmail()
+			primaryEmail := user.PrimaryEmail
 
 			if primaryEmail == nil {
 				return errors.New("user has no primary email")
@@ -159,9 +185,9 @@ func (h *EmailHandler) Update(c echo.Context) error {
 			}
 
 			// Mark email address with specified emailId as primary email address
-			primaryEmail.PrimaryEmail.EmailID = emailId
+			primaryEmail.EmailID = emailId
 
-			err = h.persister.GetPrimaryEmailPersister().Update(*primaryEmail.PrimaryEmail)
+			err = h.persister.GetPrimaryEmailPersister().Update(*primaryEmail)
 			if err != nil {
 				return fmt.Errorf("failed to store updated primary email to db: %w", err)
 			}

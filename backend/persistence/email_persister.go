@@ -10,8 +10,9 @@ import (
 )
 
 type EmailPersister interface {
+	Get(emailId uuid.UUID) (*models.Email, error)
 	CountByUserId(uuid.UUID) (int, error)
-	FindByUserId(uuid.UUID) ([]models.Email, error)
+	FindByUserId(uuid.UUID) (models.Emails, error)
 	FindByAddress(string) (*models.Email, error)
 	Create(models.Email) error
 	Update(models.Email) error
@@ -26,8 +27,22 @@ func NewEmailPersister(db *pop.Connection) EmailPersister {
 	return &emailPersister{db: db}
 }
 
-func (e *emailPersister) FindByUserId(userId uuid.UUID) ([]models.Email, error) {
-	var emails []models.Email
+func (e *emailPersister) Get(emailId uuid.UUID) (*models.Email, error) {
+	email := models.Email{}
+	err := e.db.Find(&email, emailId.String())
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &email, nil
+}
+
+func (e *emailPersister) FindByUserId(userId uuid.UUID) (models.Emails, error) {
+	var emails models.Emails
 
 	err := e.db.EagerPreload().
 		Where("user_id = ?", userId.String()).

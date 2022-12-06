@@ -5,7 +5,7 @@ import {
   TechnicalError,
   UnauthorizedError,
 } from "../Errors";
-import { Emails } from "../Dto";
+import { Email, Emails } from "../Dto";
 
 /**
  * Manages email addresses of the current user.
@@ -41,7 +41,7 @@ class EmailClient extends Client {
    * Adds a new email address to the current user.
    *
    * @param {string} address - The email address to be added.
-   * @return {Promise<void>}
+   * @return {Promise<Email>}
    * @throws {EmailAddressAlreadyExistsError}
    * @throws {MaxNumOfEmailAddressesReachedError}
    * @throws {UnauthorizedError}
@@ -49,8 +49,12 @@ class EmailClient extends Client {
    * @throws {TechnicalError}
    * @see https://docs.hanko.io/api/public#tag/Email-Management/operation/createEmail
    */
-  async create(address: string): Promise<void> {
+  async create(address: string): Promise<Email> {
     const response = await this.client.post("/emails", { address });
+
+    if (response.ok) {
+      return response.json();
+    }
 
     if (response.status === 400) {
       throw new EmailAddressAlreadyExistsError();

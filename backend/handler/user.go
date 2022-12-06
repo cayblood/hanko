@@ -50,34 +50,53 @@ func (h *UserHandler) Create(c echo.Context) error {
 	body.Email = strings.ToLower(body.Email)
 
 	return h.persister.Transaction(func(tx *pop.Connection) error {
+		newUser := models.NewUser()
+		err := h.persister.GetUserPersisterWithConnection(tx).Create(newUser)
+		if err != nil {
+			return fmt.Errorf("failed to store user: %w", err)
+		}
+
 		email, err := h.persister.GetEmailPersisterWithConnection(tx).FindByAddress(body.Email)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 
 		if email != nil {
-			return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New(fmt.Sprintf("user with email %s already exists", body.Email)))
-		}
+			if email.UserID != nil {
+				// The email already exists and is assigned already.
+				return dto.NewHTTPError(http.StatusConflict).SetInternal(errors.New(fmt.Sprintf("user with email %s already exists", body.Email)))
+			}
 
-		newUser := models.NewUser()
-		err = h.persister.GetUserPersisterWithConnection(tx).Create(newUser)
-		if err != nil {
-			return fmt.Errorf("failed to store user: %w", err)
-		}
+			if !h.cfg.Emails.RequireVerification {
+				// Assign the email address to the user because it's currently unassigned and email verification is turned off.
+				email.UserID = &newUser.ID
+				err = h.persister.GetEmailPersisterWithConnection(tx).Update(*email)
+				if err != nil {
+					return fmt.Errorf("failed to update email address: %w", err)
+				}
+			}
+		} else {
+			// The email address does not exist, create a new one.
+			if h.cfg.Emails.RequireVerification {
+				// The email can only be assigned to the user via passcode verification.
+				email = models.NewEmail(nil, body.Email)
+			} else {
+				email = models.NewEmail(&newUser.ID, body.Email)
+			}
 
-		newEmail := models.NewEmail(newUser.ID, body.Email)
-		err = h.persister.GetEmailPersisterWithConnection(tx).Create(*newEmail)
-		if err != nil {
-			return fmt.Errorf("failed to store user: %w", err)
-		}
-
-		primaryEmail := models.NewPrimaryEmail(newEmail.ID, newUser.ID)
-		err = h.persister.GetPrimaryEmailPersisterWithConnection(tx).Create(*primaryEmail)
-		if err != nil {
-			return fmt.Errorf("failed to store primary email: %w", err)
+			err = h.persister.GetEmailPersisterWithConnection(tx).Create(*email)
+			if err != nil {
+				return fmt.Errorf("failed to store user: %w", err)
+			}
 		}
 
 		if !h.cfg.Emails.RequireVerification {
+			primaryEmail := models.NewPrimaryEmail(email.ID, newUser.ID)
+			err = h.persister.GetPrimaryEmailPersisterWithConnection(tx).Create(*primaryEmail)
+			if err != nil {
+				return fmt.Errorf("failed to store primary email: %w", err)
+			}
+
 			token, err := h.sessionManager.GenerateJWT(newUser.ID)
 			if err != nil {
 				return fmt.Errorf("failed to generate jwt: %w", err)
@@ -101,7 +120,10 @@ func (h *UserHandler) Create(c echo.Context) error {
 			return fmt.Errorf("failed to write audit log: %w", err)
 		}
 
-		return c.JSON(http.StatusOK, newUser)
+		return c.JSON(http.StatusOK, dto.CreateUserResponse{
+			ID:      newUser.ID,
+			EmailID: email.ID,
+		})
 	})
 }
 
@@ -126,7 +148,10 @@ func (h *UserHandler) Get(c echo.Context) error {
 		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("user not found"))
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, dto.GetUserResponse{
+		ID:                  user.ID,
+		WebauthnCredentials: user.WebauthnCredentials,
+	})
 }
 
 type UserGetByEmailBody struct {
@@ -148,19 +173,14 @@ func (h *UserHandler) GetUserIdByEmail(c echo.Context) error {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	if email == nil {
+	if email == nil || email.UserID == nil {
 		return dto.NewHTTPError(http.StatusNotFound).SetInternal(errors.New("user not found"))
 	}
 
-	return c.JSON(http.StatusOK, struct {
-		UserId                string `json:"id"`
-		Verified              bool   `json:"verified"`
-		EmailId               string `json:"email_id"`
-		HasWebauthnCredential bool   `json:"has_webauthn_credential"`
-	}{
-		UserId:                email.UserID.String(),
+	return c.JSON(http.StatusOK, dto.UserInfoResponse{
+		ID:                    *email.UserID,
 		Verified:              email.Verified,
-		EmailId:               email.ID.String(),
+		EmailID:               email.ID,
 		HasWebauthnCredential: len(email.User.WebauthnCredentials) > 0,
 	})
 }
