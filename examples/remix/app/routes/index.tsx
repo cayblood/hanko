@@ -26,21 +26,23 @@ export const action = async ({ request }: ActionArgs) => {
 
 export default function Index() {
   const fetcher = useFetcher();
-
-  const handler = async () => {
-    const hanko = new Hanko(window.ENV.HANKO_URL);
-    const user = await hanko.user.getCurrent();
-    const data = { hankoId: user.id, emailId: user.email_id };
-    fetcher.submit(data, { method: "post" });
-  };
+  const data = useLoaderData();
 
   useEffect(() => {
-    registerHankoAuth({ shadow: true });
+    const makeAuthHandler = (hankoUrl: string) => async () => {
+      const hanko = new Hanko(hankoUrl);
+      const user = await hanko.user.getCurrent();
+      // @ts-ignore
+      const data = { hankoId: user.id, email: user.email };
+      fetcher.submit(data, { method: "post" });
+    }
+
+    const handler = makeAuthHandler(data.ENV.HANKO_URL);
+    registerHankoAuth({ shadow: true }).then();
     document.addEventListener("hankoAuthSuccess", handler);
     return () => document.removeEventListener("hankoAuthSuccess", handler);
-  });
+  }, [data.ENV.HANKO_URL, fetcher]);
 
-  const data = useLoaderData();
   return (
     <div className="content">
       <Suspense fallback={"Loading..."}>
